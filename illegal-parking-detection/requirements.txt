@@ -1,0 +1,9 @@
+distro==1.7.0
+imutils==0.5.4
+# Updated to a numpy release that provides wheels for Python 3.13
+numpy==2.3.4
+# Use a newer opencv build that supports modern Python versions
+opencv-python>=4.8.0
+packaging==21.3
+pyparsing==3.0.7
+scikit-build==0.13.1
