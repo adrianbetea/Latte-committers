@@ -77,13 +77,11 @@ const IncidentMap = ({ incidents, selectedIncidentId, onIncidentSelect }: Incide
       el.innerHTML = '📍';
 
       el.addEventListener('mouseenter', () => {
-        el.style.backgroundColor = incident.id === selectedIncidentId ? '#2563eb' : '#dba531ff';
-        el.style.transform = 'scale(1.2)';
+        el.style.backgroundColor = '#f97316'; // Orange color
       });
 
       el.addEventListener('mouseleave', () => {
         el.style.backgroundColor = incident.id === selectedIncidentId ? '#3b82f6' : '#ef4444';
-        el.style.transform = 'scale(1)';
       });
 
       // Crează HTML pentru popup cu buton de vizionare video
