@@ -9,7 +9,7 @@ export interface Incident {
   };
   violationStart: Date;
   duration: number; // in minutes
-  status: 'new' | 'reviewing' | 'confirmed' | 'dismissed';
+  status: 'pending' | 'rejected' | 'resolved_and_fined' | 'resolved';
   images: {
     fullCar: string;
     licensePlate: string;

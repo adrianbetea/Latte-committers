@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import IncidentReview from "./pages/IncidentReview";
+import AllIncidents from "./pages/AllIncidents";
 import Analytics from "./pages/Analytics";
 import CameraView from "./pages/CameraView";
 import NotFound from "./pages/NotFound";
@@ -20,6 +21,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/incidents" element={<AllIncidents />} />
           <Route path="/incident/:id" element={<IncidentReview />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/camera/:id" element={<CameraView />} />
