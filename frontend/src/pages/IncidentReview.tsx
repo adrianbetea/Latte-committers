@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Incident } from '@/types/incident';
@@ -32,6 +32,8 @@ const IncidentReview = () => {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cameraRefresh, setCameraRefresh] = useState(0);
+  const cameraImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,6 +91,21 @@ const IncidentReview = () => {
 
     fetchData();
   }, [id]);
+
+  // Auto-refresh camera feed every 1 second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCameraRefresh(prev => prev + 1);
+      if (cameraImageRef.current) {
+        // Force refresh by appending timestamp
+        const img = cameraImageRef.current;
+        const timestamp = new Date().getTime();
+        img.src = `http://10.47.103.46:8080/shot.jpg?t=${timestamp}`;
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   if (loading) {
     return (
@@ -213,6 +230,27 @@ const IncidentReview = () => {
                   <p className="text-sm text-muted-foreground">{incident.location.district} District</p>
                 </div>
               </div>
+            </Card>
+
+            {/* Vehicle Image */}
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Live Camera Feed</h3>
+              <div className="relative bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                <img
+                  ref={cameraImageRef}
+                  src={`http://10.47.103.46:8080/shot.jpg?t=${cameraRefresh}`}
+                  alt="Live Camera Feed"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.style.display = 'none';
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  <span className="text-white text-sm">🔴 Live Stream</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">Live feed from IP Camera (updating every 1s)</p>
             </Card>
 
             {/* Vehicle Image */}

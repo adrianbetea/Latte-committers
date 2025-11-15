@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Incident } from '@/types/incident';
 import { Card } from './ui/card';
+import { Play } from 'lucide-react';
 
 interface IncidentMapProps {
   incidents: Incident[];
@@ -55,43 +56,63 @@ const IncidentMap = ({ incidents, selectedIncidentId, onIncidentSelect }: Incide
     Object.values(markers.current).forEach(marker => marker.remove());
     markers.current = {};
 
-    // Add new markers
+    // Add new markers for incidents
     incidents.forEach((incident) => {
       const el = document.createElement('div');
       el.className = 'incident-marker';
-      el.style.width = '30px';
-      el.style.height = '30px';
+      el.style.width = '40px';
+      el.style.height = '40px';
       el.style.borderRadius = '50%';
       el.style.backgroundColor = incident.id === selectedIncidentId ? '#3b82f6' : '#ef4444';
       el.style.border = '3px solid white';
       el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
       el.style.cursor = 'pointer';
       el.style.transition = 'background-color 0.3s ease';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.fontSize = '20px';
+
+      // Add icon based on incident type
+      el.innerHTML = '📍';
 
       el.addEventListener('mouseenter', () => {
         el.style.backgroundColor = incident.id === selectedIncidentId ? '#2563eb' : '#dba531ff';
+        el.style.transform = 'scale(1.2)';
       });
 
       el.addEventListener('mouseleave', () => {
         el.style.backgroundColor = incident.id === selectedIncidentId ? '#3b82f6' : '#ef4444';
+        el.style.transform = 'scale(1)';
       });
+
+      // Crează HTML pentru popup cu buton de vizionare video
+      const popupHTML = `
+        <div style="padding: 12px; min-width: 200px;">
+          <strong style="color: #ef4444; font-size: 14px;">${incident.plateNumber}</strong><br/>
+          <span style="font-size: 12px; color: #666;">${incident.location.street}</span><br/>
+          <span style="font-size: 11px; color: #999;">Duration: ${incident.duration} min</span><br/>
+          <span style="font-size: 11px; color: #999;">Lat: ${incident.location.lat.toFixed(4)}, Lng: ${incident.location.lng.toFixed(4)}</span>
+          <div style="margin-top: 8px;">
+            <button onclick="window.location.href='/incident/${incident.id}'" 
+              style="width: 100%; padding: 6px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+              View Incident
+            </button>
+          </div>
+        </div>
+      `;
 
       const marker = new mapboxgl.Marker(el)
         .setLngLat([incident.location.lng, incident.location.lat])
         .setPopup(
-          new mapboxgl.Popup({ offset: 25 })
-            .setHTML(`
-              <div style="padding: 8px;">
-                <strong style="color: #ef4444;">${incident.plateNumber}</strong><br/>
-                <span style="font-size: 12px;">${incident.location.street}</span><br/>
-                <span style="font-size: 11px; color: #666;">Duration: ${incident.duration}min</span>
-              </div>
-            `)
+          new mapboxgl.Popup({ offset: 25, maxWidth: 250 })
+            .setHTML(popupHTML)
         )
         .addTo(map.current!);
 
       el.addEventListener('click', () => {
         onIncidentSelect(incident.id);
+        marker.togglePopup();
       });
 
       markers.current[incident.id] = marker;

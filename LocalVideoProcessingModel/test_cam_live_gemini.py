@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import google.generativeai as genai
 from PIL import Image
 import numpy as np
+import requests
+import json
 
 # Încarcă API key
 load_dotenv()
@@ -20,6 +22,62 @@ if not cap.isOpened():
     exit()
 
 print("✓ Conectat la camera telefonului.")
+
+# Citire coordonate GPS din fișier
+def read_gps_coords():
+    """Citeste coordonatele GPS din fisierul gps_coords.txt"""
+    try:
+        with open("gps_coords.txt", "r") as f:
+            gps_data = {}
+            for line in f:
+                if "=" in line:
+                    key, value = line.strip().split("=")
+                    gps_data[key.strip()] = float(value.strip())
+            return gps_data.get("lat"), gps_data.get("lon")
+    except Exception as e:
+        print(f"❌ Eroare la citirea GPS: {e}")
+        return None, None
+
+latitude, longitude = read_gps_coords()
+if latitude and longitude:
+    print(f"✓ Coordonate GPS: {latitude}, {longitude}")
+else:
+    print("❌ Nu s-au putut citi coordonatele GPS")
+
+# Funcție pentru a trimite incidentul la backend
+def send_incident_to_backend(ai_response, frame):
+    """Trimite incidentul detectat la backend"""
+    try:
+        # Salvează frame-ul temporar
+        frame_path = f"incident_frame_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        cv2.imwrite(frame_path, frame)
+        
+        # Extrage informațiile din răspunsul AI
+        incident_data = {
+            "address": f"Camera IP - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            "latitude": latitude,
+            "longitude": longitude,
+            "datetime": datetime.now().isoformat(),
+            "ai_description": ai_response,
+            "photos": [frame_path]
+        }
+        
+        # Trimite la backend
+        response = requests.post(
+            "http://localhost:3000/api/incidents",
+            json=incident_data,
+            headers={"Content-Type": "application/json"}
+        )
+        
+        if response.status_code == 201:
+            print(f"✓ Incident trimis la backend: {response.json()}")
+            return True
+        else:
+            print(f"❌ Eroare la trimiterea incidentului: {response.text}")
+            return False
+    except Exception as e:
+        print(f"❌ Eroare la trimiterea incidentului: {e}")
+        return False
 
 # Prompt pentru parcări ilegale
 PROMPT = """
@@ -48,6 +106,8 @@ def send_to_gemini(frame):
     print("\n📤 Se trimite frame-ul către Gemini...")
 
     response = model.generate_content([PROMPT, img])
+
+    return response.text if response else None
 
     return response.text if response else None
 
@@ -81,6 +141,11 @@ while True:
             print("----------------------------------------")
             print(result)
             print("----------------------------------------")
+            
+            # Verifică dacă este o încălcare
+            if "ÎNCĂLCARE: DA" in result or "INCALCARE: DA" in result:
+                print("🚨 Încălcare detectată! Se trimite la backend...")
+                send_incident_to_backend(result, frame)
         else:
             print("❌ Nu am primit răspuns de la Gemini.")
 
