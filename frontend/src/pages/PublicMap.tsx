@@ -313,7 +313,6 @@ const PublicMap = () => {
       {/* Footer */}
       <footer className="border-t mt-12 py-6">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>Timișoara Parking Monitor - Public Transparency Initiative</p>
           <p className="mt-1">Data updated every 30 seconds</p>
         </div>
       </footer>
