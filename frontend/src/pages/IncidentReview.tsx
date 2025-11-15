@@ -166,6 +166,7 @@ const IncidentReview = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(updateData),
       });
 
@@ -204,6 +205,7 @@ const IncidentReview = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           status: 'resolved',
           car_number: incident.plateNumber,

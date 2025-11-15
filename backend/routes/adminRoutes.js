@@ -7,13 +7,16 @@ const adminMiddleware = require('../middleware/adminMiddleware');
 // All admin routes require authentication and admin role
 router.use(authMiddleware, adminMiddleware);
 
-// GET list of users (history)
-router.get('/users-history', adminController.getUsersHistory);
+// GET resolved incidents with user info (with optional user name filter)
+router.get('/resolved-incidents', adminController.getResolvedIncidents);
 
-// GET activity for a user
-router.get('/users/:id/activity', adminController.getUserActivity);
+// GET all users (for search suggestions)
+router.get('/users', adminController.getAllUsers);
 
-// Optional: create action (internal)
-router.post('/actions', adminController.createAction);
+// PUT update user
+router.put('/users/:id', adminController.updateUser);
+
+// DELETE user
+router.delete('/users/:id', adminController.deleteUser);
 
 module.exports = router;

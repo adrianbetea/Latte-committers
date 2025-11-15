@@ -1,59 +1,122 @@
 const db = require('../config/database');
 
-// Get list of non-admin users with last action timestamp
-exports.getUsersHistory = async (req, res) => {
+// Get resolved incidents with user info - optionally filter by user name
+exports.getResolvedIncidents = async (req, res) => {
+  try {
+    const { userName } = req.query;
+
+    let query = `
+      SELECT 
+        i.id,
+        i.address,
+        i.car_number,
+        i.status,
+        i.resolved_at,
+        i.admin_notes,
+        i.fine_id,
+        u.id as user_id,
+        u.name as user_name,
+        u.email as user_email,
+        f.name as fine_name,
+        f.value as fine_value
+      FROM incidents i
+      LEFT JOIN users u ON i.resolved_by = u.id
+      LEFT JOIN fines f ON i.fine_id = f.id
+      WHERE i.status IN ('resolved', 'resolved_and_fined')
+    `;
+
+    const params = [];
+
+    if (userName && userName.trim() !== '') {
+      query += ` AND u.name LIKE ?`;
+      params.push(`%${userName}%`);
+    }
+
+    query += ` ORDER BY i.resolved_at DESC`;
+
+    const [rows] = await db.query(query, params);
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error('Error fetching resolved incidents:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};
+
+// Get list of all users (for search suggestions)
+exports.getAllUsers = async (req, res) => {
   try {
     const [rows] = await db.query(`
-      SELECT u.id, u.name, u.email, MAX(ua.created_at) AS last_access
-      FROM users u
-      LEFT JOIN user_actions ua ON ua.actor_id = u.id
-      WHERE u.isAdmin = 0
-      GROUP BY u.id, u.name, u.email
-      ORDER BY COALESCE(MAX(ua.created_at), u.id) DESC
+      SELECT id, name, email, isAdmin
+      FROM users
+      ORDER BY name ASC
     `);
 
     res.json({ success: true, data: rows });
   } catch (error) {
-    console.error('Error fetching users history:', error);
+    console.error('Error fetching users:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
-// Get activity for a single user (actions), ordered desc
-exports.getUserActivity = async (req, res) => {
+// Update user information
+exports.updateUser = async (req, res) => {
   try {
-    const { id } = req.params;
+    const userId = req.params.id;
+    const { name, email, isAdmin } = req.body;
 
-    const [rows] = await db.query(
-      `SELECT ua.*, i.address AS incident_address, i.car_number, i.status as incident_status
-       FROM user_actions ua
-       LEFT JOIN incidents i ON i.id = ua.incident_id
-       WHERE ua.actor_id = ?
-       ORDER BY ua.created_at DESC`,
-      [id]
+    // Validation
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Name and email are required' });
+    }
+
+    // Check if email is already taken by another user
+    const [existingUser] = await db.query(
+      'SELECT id FROM users WHERE email = ? AND id != ?',
+      [email, userId]
     );
 
-    res.json({ success: true, data: rows });
-  } catch (error) {
-    console.error('Error fetching user activity:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-};
+    if (existingUser.length > 0) {
+      return res.status(400).json({ success: false, message: 'Email is already in use' });
+    }
 
-// Optional: endpoint to create an action manually (not exposed to UI by default)
-exports.createAction = async (req, res) => {
-  try {
-    const { actor_id, incident_id, action_type, details } = req.body;
+    // Update user
     const [result] = await db.query(
-      'INSERT INTO user_actions (actor_id, incident_id, action_type, details) VALUES (?, ?, ?, ?)',
-      [actor_id, incident_id || null, action_type, details || null]
+      'UPDATE users SET name = ?, email = ?, isAdmin = ? WHERE id = ?',
+      [name, email, isAdmin ? 1 : 0, userId]
     );
 
-    res.json({ success: true, data: { id: result.insertId } });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, message: 'User updated successfully' });
   } catch (error) {
-    console.error('Error creating action:', error);
+    console.error('Error updating user:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 };
 
-module.exports = exports;
+// Delete user
+exports.deleteUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // Prevent deleting the current logged-in user
+    if (req.user && req.user.id == userId) {
+      return res.status(400).json({ success: false, message: 'Cannot delete your own account' });
+    }
+
+    // Delete user
+    const [result] = await db.query('DELETE FROM users WHERE id = ?', [userId]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+};

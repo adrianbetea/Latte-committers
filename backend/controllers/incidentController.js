@@ -163,12 +163,28 @@ exports.updateIncidentStatus = async (req, res) => {
             });
         }
 
-        const [result] = await db.query(
-            `UPDATE incidents 
+        // Get user ID from cookie session
+        const userId = req.cookies.userSession;
+
+        // Build update query based on status
+        let updateQuery;
+        let updateParams;
+
+        if (status === 'resolved' || status === 'resolved_and_fined') {
+            // Include resolved_by and resolved_at when resolving
+            updateQuery = `UPDATE incidents 
+       SET status = ?, car_number = ?, fine_id = ?, admin_notes = ?, resolved_by = ?, resolved_at = NOW()
+       WHERE id = ?`;
+            updateParams = [status, car_number || null, fine_id || null, admin_notes || null, userId || null, id];
+        } else {
+            // Regular update without resolved fields
+            updateQuery = `UPDATE incidents 
        SET status = ?, car_number = ?, fine_id = ?, admin_notes = ? 
-       WHERE id = ?`,
-            [status, car_number || null, fine_id || null, admin_notes || null, id]
-        );
+       WHERE id = ?`;
+            updateParams = [status, car_number || null, fine_id || null, admin_notes || null, id];
+        }
+
+        const [result] = await db.query(updateQuery, updateParams);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
@@ -182,20 +198,20 @@ exports.updateIncidentStatus = async (req, res) => {
             message: 'Incident updated successfully'
         });
 
-                // Log admin action into user_actions table if session available
-                try {
-                    const actorId = req.cookies && req.cookies.userSession ? req.cookies.userSession : null;
-                    if (actorId) {
-                        const actionType = `incident_status_update:${status}`;
-                        const details = JSON.stringify({ admin_notes: admin_notes || null, car_number: car_number || null, fine_id: fine_id || null });
-                        await db.query(
-                            'INSERT INTO user_actions (actor_id, incident_id, action_type, details) VALUES (?, ?, ?, ?)',
-                            [actorId, id, actionType, details]
-                        );
-                    }
-                } catch (logErr) {
-                    console.error('Failed to log user action:', logErr);
-                }
+        // Log admin action into user_actions table if session available
+        try {
+            const actorId = req.cookies && req.cookies.userSession ? req.cookies.userSession : null;
+            if (actorId) {
+                const actionType = `incident_status_update:${status}`;
+                const details = JSON.stringify({ admin_notes: admin_notes || null, car_number: car_number || null, fine_id: fine_id || null });
+                await db.query(
+                    'INSERT INTO user_actions (actor_id, incident_id, action_type, details) VALUES (?, ?, ?, ?)',
+                    [actorId, id, actionType, details]
+                );
+            }
+        } catch (logErr) {
+            console.error('Failed to log user action:', logErr);
+        }
     } catch (error) {
         console.error('Error updating incident:', error);
         res.status(500).json({
@@ -338,7 +354,7 @@ exports.getAnalytics = async (req, res) => {
 
         // Get district overview
         let districtOverview = [];
-        
+
         if (district && district !== 'all') {
             // Single district view - get stats for that district for last week
             const [districtStatsLastWeek] = await db.query(`
@@ -350,7 +366,7 @@ exports.getAnalytics = async (req, res) => {
                   AND i.datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
                 GROUP BY district
             `, [district]);
-            
+
             // Also get total count for the selected period
             const [districtStatsTotal] = await db.query(`
                 SELECT 
@@ -360,13 +376,13 @@ exports.getAnalytics = async (req, res) => {
                 ${whereClause}
                 GROUP BY district
             `, params);
-            
+
             if (districtStatsLastWeek.length > 0) {
                 const weeklyCount = districtStatsLastWeek[0].count;
                 const totalCount = districtStatsTotal.length > 0 ? districtStatsTotal[0].count : 0;
                 let score = 'Low';
                 let color = '#10b981'; // Green
-                
+
                 // Risk level based on weekly average (incidents per week)
                 if (weeklyCount >= 10) {
                     score = 'Critical';
@@ -378,7 +394,7 @@ exports.getAnalytics = async (req, res) => {
                     score = 'Medium';
                     color = '#eab308'; // Yellow
                 }
-                
+
                 districtOverview = [{
                     district: district,
                     count: totalCount,
@@ -400,16 +416,16 @@ exports.getAnalytics = async (req, res) => {
             // All districts view - get top 3 and worst 3
             const whereConditionsForDistricts = [];
             const paramsForDistricts = [];
-            
+
             if (startDate && endDate) {
                 whereConditionsForDistricts.push('datetime BETWEEN ? AND ?');
                 paramsForDistricts.push(startDate, endDate);
             }
-            
+
             const whereClauseForDistricts = whereConditionsForDistricts.length > 0
                 ? 'WHERE ' + whereConditionsForDistricts.join(' AND ')
                 : '';
-            
+
             const [allDistricts] = await db.query(`
                 SELECT 
                     district,
@@ -420,7 +436,7 @@ exports.getAnalytics = async (req, res) => {
                 HAVING district IS NOT NULL
                 ORDER BY count DESC
             `, paramsForDistricts);
-            
+
             if (allDistricts.length > 0) {
                 // Get top 3
                 const top3 = allDistricts.slice(0, 3).map(d => ({
@@ -429,7 +445,7 @@ exports.getAnalytics = async (req, res) => {
                     type: 'top',
                     color: '#ef4444' // Red for high incidents
                 }));
-                
+
                 // Get worst 3 (lowest incidents)
                 const worst3 = allDistricts.slice(-3).reverse().map(d => ({
                     district: d.district,
@@ -437,7 +453,7 @@ exports.getAnalytics = async (req, res) => {
                     type: 'worst',
                     color: '#10b981' // Green for low incidents
                 }));
-                
+
                 districtOverview = [...top3, ...worst3];
             }
         }

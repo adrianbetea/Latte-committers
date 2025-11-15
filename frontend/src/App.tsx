@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
 import UsersHistory from "./pages/UsersHistory";
+import ManageUsers from "./pages/ManageUsers";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -78,6 +79,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <UsersHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/manage-users"
+            element={
+              <ProtectedRoute>
+                <ManageUsers />
               </ProtectedRoute>
             }
           />

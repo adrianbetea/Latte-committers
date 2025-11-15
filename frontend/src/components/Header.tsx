@@ -1,4 +1,4 @@
-import { Bell, User, MapPin, BarChart3, LogOut, UserPlus, Users } from "lucide-react";
+import { Bell, User, MapPin, BarChart3, LogOut, UserPlus, Users, Settings } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -113,23 +113,17 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
             {isAdmin && (
               <Button
                 variant="ghost"
-                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/create-user' ? 'bg-secondary/80' : ''
+                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/manage-users' ? 'bg-secondary/80' : ''
                   }`}
-                onClick={() => navigate('/create-user')}
+                onClick={() => navigate('/manage-users')}
               >
-                <UserPlus className="h-5" />
-                Create User
+                <Settings className="h-5" />
+                Manage Users
               </Button>
             )}
 
             <div className="flex items-center gap-3 border-l border-secondary-foreground/20 pl-6">
-              <Button
-                variant="ghost"
-                className="text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80"
-              >
-                <User className="h-5 w-5" />
-                <span className="text-sm font-medium">Admin:</span>
-              </Button>
+
 
               <Button
                 variant="ghost"
