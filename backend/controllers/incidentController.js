@@ -1,0 +1,276 @@
+const db = require('../config/database');
+
+// Get all incidents
+exports.getAllIncidents = async (req, res) => {
+    try {
+        const [rows] = await db.query(`
+      SELECT 
+        i.*,
+        f.name as fine_name,
+        f.value as fine_value
+      FROM incidents i
+      LEFT JOIN fines f ON i.fine_id = f.id
+      ORDER BY i.datetime DESC
+    `);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error fetching incidents:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// Get incident by ID with photos
+exports.getIncidentById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Get incident details
+        const [incidents] = await db.query(`
+      SELECT 
+        i.*,
+        f.name as fine_name,
+        f.value as fine_value
+      FROM incidents i
+      LEFT JOIN fines f ON i.fine_id = f.id
+      WHERE i.id = ?
+    `, [id]);
+
+        if (incidents.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Incident not found'
+            });
+        }
+
+        // Get photos for this incident
+        const [photos] = await db.query(
+            'SELECT * FROM incident_photo WHERE incident_id = ?',
+            [id]
+        );
+
+        const incident = {
+            ...incidents[0],
+            photos: photos
+        };
+
+        res.json({
+            success: true,
+            data: incident
+        });
+    } catch (error) {
+        console.error('Error fetching incident:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// Create new incident
+exports.createIncident = async (req, res) => {
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        const {
+            address,
+            latitude,
+            longitude,
+            datetime,
+            ai_description,
+            car_number,
+            fine_id,
+            photos // array of photo paths
+        } = req.body;
+
+        // Validate required fields
+        if (!address || !latitude || !longitude || !datetime || !ai_description) {
+            await connection.rollback();
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields'
+            });
+        }
+
+        // Insert incident
+        const [result] = await connection.query(
+            `INSERT INTO incidents 
+       (address, latitude, longitude, datetime, ai_description, car_number, fine_id, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [address, latitude, longitude, datetime, ai_description, car_number || null, fine_id || null]
+        );
+
+        const incidentId = result.insertId;
+
+        // Insert photos if provided
+        if (photos && Array.isArray(photos) && photos.length > 0) {
+            const photoValues = photos.map(photoPath => [incidentId, photoPath]);
+            await connection.query(
+                'INSERT INTO incident_photo (incident_id, photo_path) VALUES ?',
+                [photoValues]
+            );
+        }
+
+        await connection.commit();
+
+        res.status(201).json({
+            success: true,
+            message: 'Incident created successfully',
+            data: {
+                id: incidentId,
+                address,
+                latitude,
+                longitude,
+                datetime,
+                status: 'pending'
+            }
+        });
+    } catch (error) {
+        await connection.rollback();
+        console.error('Error creating incident:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    } finally {
+        connection.release();
+    }
+};
+
+// Update incident status
+exports.updateIncidentStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status, car_number, fine_id } = req.body;
+
+        // Validate status
+        const validStatuses = ['pending', 'rejected', 'resolved_and_fined', 'resolved'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status value'
+            });
+        }
+
+        const [result] = await db.query(
+            `UPDATE incidents 
+       SET status = ?, car_number = ?, fine_id = ? 
+       WHERE id = ?`,
+            [status, car_number || null, fine_id || null, id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Incident not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Incident updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating incident:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// Delete incident
+exports.deleteIncident = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const [result] = await db.query('DELETE FROM incidents WHERE id = ?', [id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Incident not found'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Incident deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting incident:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// Get incidents by status
+exports.getIncidentsByStatus = async (req, res) => {
+    try {
+        const { status } = req.params;
+
+        const [rows] = await db.query(`
+      SELECT 
+        i.*,
+        f.name as fine_name,
+        f.value as fine_value
+      FROM incidents i
+      LEFT JOIN fines f ON i.fine_id = f.id
+      WHERE i.status = ?
+      ORDER BY i.datetime DESC
+    `, [status]);
+
+        res.json({
+            success: true,
+            data: rows
+        });
+    } catch (error) {
+        console.error('Error fetching incidents by status:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
+
+// Get incident statistics
+exports.getIncidentStats = async (req, res) => {
+    try {
+        const [stats] = await db.query(`
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'resolved_and_fined' THEN 1 ELSE 0 END) as fined,
+        SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as resolved,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+      FROM incidents
+    `);
+
+        res.json({
+            success: true,
+            data: stats[0]
+        });
+    } catch (error) {
+        console.error('Error fetching incident statistics:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};

@@ -1,22 +1,104 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
-import { mockIncidents } from '@/types/incident';
+import { Incident } from '@/types/incident';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ArrowLeft, MapPin, Clock, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface Fine {
+  id: number;
+  name: string;
+  value: number;
+}
 
 const IncidentReview = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [notes, setNotes] = useState('');
-  
-  const incident = mockIncidents.find(i => i.id === id);
-  const newIncidents = mockIncidents.filter(i => i.status === 'new');
+  const [selectedFine, setSelectedFine] = useState<string>('');
+  const [fines, setFines] = useState<Fine[]>([]);
+  const [incident, setIncident] = useState<Incident | null>(null);
+  const [allIncidents, setAllIncidents] = useState<Incident[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch fines
+        const finesResponse = await fetch('http://localhost:3000/api/fines');
+        const finesData = await finesResponse.json();
+        if (finesData.success) {
+          setFines(finesData.data);
+        }
+
+        // Fetch specific incident
+        const incidentResponse = await fetch(`http://localhost:3000/api/incidents/${id}`);
+        const incidentData = await incidentResponse.json();
+
+        if (incidentData.success) {
+          const rawIncident = incidentData.data;
+          const transformedIncident: Incident = {
+            id: rawIncident.id.toString(),
+            plateNumber: rawIncident.car_number || 'Unknown',
+            location: {
+              lat: parseFloat(rawIncident.latitude),
+              lng: parseFloat(rawIncident.longitude),
+              street: rawIncident.address,
+              district: rawIncident.address.split(',')[0] || 'Unknown',
+            },
+            violationStart: new Date(rawIncident.datetime),
+            duration: Math.floor((Date.now() - new Date(rawIncident.datetime).getTime()) / 60000),
+            status: rawIncident.status,
+            images: {
+              fullCar: rawIncident.photos?.[0]?.photo_path || 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+              licensePlate: rawIncident.photos?.[1]?.photo_path || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
+            },
+            notes: rawIncident.ai_description,
+          };
+          setIncident(transformedIncident);
+        }
+
+        // Fetch all incidents for count
+        const allIncidentsResponse = await fetch('http://localhost:3000/api/incidents/status/pending');
+        const allIncidentsData = await allIncidentsResponse.json();
+        if (allIncidentsData.success) {
+          setAllIncidents(allIncidentsData.data.map((inc: any) => ({
+            id: inc.id.toString(),
+            status: inc.status
+          })));
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        toast.error('Failed to load incident data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 text-center">
+          <p className="text-muted-foreground">Loading incident data...</p>
+        </Card>
+      </div>
+    );
+  }
 
   if (!incident) {
     return (
@@ -29,15 +111,29 @@ const IncidentReview = () => {
     );
   }
 
+  const newIncidents = allIncidents.filter((i: any) => i.status === 'pending');
+
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
+
+    // If more than 72 hours (3 days), show date instead
+    if (hours >= 72) {
+      const days = Math.floor(hours / 24);
+      return `${days} days`;
+    }
+
     return hours > 0 ? `${hours} hours ${mins} minutes` : `${mins} minutes`;
   };
 
   const handleConfirmViolation = () => {
+    const selectedFineData = selectedFine ? fines.find(f => f.id.toString() === selectedFine) : null;
+    const fineMessage = selectedFineData
+      ? `Fine: ${selectedFineData.name} (${selectedFineData.value} RON)`
+      : 'No fine selected';
+
     toast.success('Fine issued successfully', {
-      description: `Violation for ${incident.plateNumber} confirmed and fine issued.`,
+      description: `Violation for ${incident.plateNumber} confirmed. ${fineMessage}`,
     });
     setTimeout(() => navigate('/dashboard'), 1500);
   };
@@ -56,7 +152,7 @@ const IncidentReview = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header newIncidentsCount={newIncidents.length} />
-      
+
       <main className="flex-1 container mx-auto px-6 py-6">
         <Button
           variant="ghost"
@@ -147,8 +243,30 @@ const IncidentReview = () => {
 
               <div className="space-y-4 mb-6">
                 <div>
+                  <Label htmlFor="fine-select" className="text-base font-semibold mb-2">
+                    Select Fine (Optional)
+                  </Label>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Choose the appropriate fine for this violation
+                  </p>
+                  <Select value={selectedFine} onValueChange={setSelectedFine}>
+                    <SelectTrigger id="fine-select">
+                      <SelectValue placeholder="No fine selected" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No fine</SelectItem>
+                      {fines.map((fine) => (
+                        <SelectItem key={fine.id} value={fine.id.toString()}>
+                          {fine.name} - {fine.value} RON
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
                   <Label htmlFor="notes" className="text-base font-semibold mb-2">
-                    Officer Notes <span className="text-alert">*</span>
+                    Admin Notes <span className="text-alert">*</span>
                   </Label>
                   <p className="text-sm text-muted-foreground mb-2">
                     Mandatory notes for incident review and record keeping
@@ -198,11 +316,20 @@ const IncidentReview = () => {
                 </Button>
               </div>
 
-              <div className="mt-6 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-                <p className="font-semibold mb-1">Fine Information:</p>
-                <p>Standard parking violation: 200 RON</p>
-                <p className="text-xs mt-2">Payment due within 15 days</p>
-              </div>
+              {selectedFine && selectedFine !== 'none' && (
+                <div className="mt-6 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
+                  <p className="font-semibold mb-1">Selected Fine Information:</p>
+                  {(() => {
+                    const fine = fines.find(f => f.id.toString() === selectedFine);
+                    return fine ? (
+                      <>
+                        <p>{fine.name}: {fine.value} RON</p>
+                        <p className="text-xs mt-2">Payment due within 15 days</p>
+                      </>
+                    ) : null;
+                  })()}
+                </div>
+              )}
             </Card>
           </div>
         </div>
