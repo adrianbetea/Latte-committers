@@ -1,5 +1,4 @@
 import Header from '@/components/Header';
-import { mockIncidents } from '@/types/incident';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -7,45 +6,99 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { CalendarIcon, TrendingUp, AlertTriangle, CheckCircle } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarIcon, TrendingUp, AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
+
+interface AnalyticsData {
+  stats: {
+    total_violations: number;
+    fines_issued: number;
+    revenue: number;
+    incidents_reviewed: number;
+  };
+  violations_over_time: Array<{ date: string; violations: number }>;
+  hotspots: Array<{ location: string; count: number }>;
+  review_stats: Array<{ category: string; count: number }>;
+}
 
 const Analytics = () => {
   const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
     from: new Date(2025, 0, 1),
-    to: new Date(),
+    to: new Date(2025, 11, 31),
   });
-  
-  const newIncidents = mockIncidents.filter(i => i.status === 'new');
+  const [district, setDistrict] = useState<string>('all');
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [newIncidentsCount, setNewIncidentsCount] = useState<number>(0);
 
-  // Mock data for charts
-  const violationsOverTime = [
-    { date: 'Jan 1', violations: 12 },
-    { date: 'Jan 2', violations: 19 },
-    { date: 'Jan 3', violations: 15 },
-    { date: 'Jan 4', violations: 22 },
-    { date: 'Jan 5', violations: 18 },
-    { date: 'Jan 6', violations: 25 },
-    { date: 'Jan 7', violations: 21 },
-  ];
+  // Fetch analytics data
+  const fetchAnalytics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('startDate', format(dateRange.from, 'yyyy-MM-dd'));
+      params.append('endDate', format(dateRange.to, 'yyyy-MM-dd'));
+      if (district !== 'all') {
+        params.append('district', district);
+      }
 
-  const hotspotData = [
-    { location: 'Bulevardul Revoluției', count: 45, color: '#ef4444' },
-    { location: 'Piața Victoriei', count: 38, color: '#f97316' },
-    { location: 'Strada Eminescu', count: 32, color: '#f59e0b' },
-    { location: 'Bulevardul Liviu Rebreanu', count: 28, color: '#eab308' },
-    { location: 'Strada Alba Iulia', count: 24, color: '#84cc16' },
-  ];
+      const response = await fetch(`http://localhost:3000/api/incidents/analytics?${params.toString()}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setAnalyticsData(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateRange, district]);
 
-  const reviewStats = [
-    { category: 'Fines Issued', count: 156 },
-    { category: 'Incidents Reviewed', count: 189 },
-  ];
+  // Fetch new incidents count
+  const fetchNewIncidents = useCallback(async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/incidents/status/pending');
+      const result = await response.json();
+      if (result.success) {
+        setNewIncidentsCount(result.data.length);
+      }
+    } catch (error) {
+      console.error('Error fetching new incidents:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAnalytics();
+    fetchNewIncidents();
+  }, [fetchAnalytics, fetchNewIncidents]);
+
+  const applyFilters = () => {
+    fetchAnalytics();
+  };
+
+  // Add colors to hotspot data
+  const hotspotColors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'];
+  const hotspotData = analyticsData?.hotspots.map((item, index) => ({
+    ...item,
+    color: hotspotColors[index % hotspotColors.length]
+  })) || [];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Header newIncidentsCount={newIncidentsCount} />
+        <main className="flex-1 container mx-auto px-6 py-6 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header newIncidentsCount={newIncidents.length} />
+      <Header newIncidentsCount={newIncidentsCount} />
       
       <main className="flex-1 container mx-auto px-6 py-6">
         <div className="mb-6">
@@ -80,21 +133,47 @@ const Analytics = () => {
 
             <div className="flex-1 min-w-[200px]">
               <Label className="mb-2 block">District</Label>
-              <Select defaultValue="all">
+              <Select value={district} onValueChange={setDistrict}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select district" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px]">
                   <SelectItem value="all">All Districts</SelectItem>
-                  <SelectItem value="centru">Centru</SelectItem>
-                  <SelectItem value="cetate">Cetate</SelectItem>
-                  <SelectItem value="fabric">Fabric</SelectItem>
-                  <SelectItem value="iosefin">Iosefin</SelectItem>
+                  <SelectItem value="Aradului">Aradului</SelectItem>
+                  <SelectItem value="Blașcovici">Blașcovici</SelectItem>
+                  <SelectItem value="Braytim">Braytim</SelectItem>
+                  <SelectItem value="Centru">Centru</SelectItem>
+                  <SelectItem value="Cetate">Cetate</SelectItem>
+                  <SelectItem value="Ciarda Roșie">Ciarda Roșie</SelectItem>
+                  <SelectItem value="Circumvalațiunii">Circumvalațiunii</SelectItem>
+                  <SelectItem value="Complexul Studențesc">Complexul Studențesc</SelectItem>
+                  <SelectItem value="Dâmbovița">Dâmbovița</SelectItem>
+                  <SelectItem value="Elisabetin">Elisabetin</SelectItem>
+                  <SelectItem value="Fabric">Fabric</SelectItem>
+                  <SelectItem value="Fratelia">Fratelia</SelectItem>
+                  <SelectItem value="Freidorf">Freidorf</SelectItem>
+                  <SelectItem value="Ghiroda Nouă">Ghiroda Nouă</SelectItem>
+                  <SelectItem value="Girocului">Girocului</SelectItem>
+                  <SelectItem value="Iosefin">Iosefin</SelectItem>
+                  <SelectItem value="Kuncz">Kuncz</SelectItem>
+                  <SelectItem value="Lipovei">Lipovei</SelectItem>
+                  <SelectItem value="Martirilor">Martirilor</SelectItem>
+                  <SelectItem value="Mehala">Mehala</SelectItem>
+                  <SelectItem value="Modern">Modern</SelectItem>
+                  <SelectItem value="Odobescu">Odobescu</SelectItem>
+                  <SelectItem value="Plopi">Plopi</SelectItem>
+                  <SelectItem value="Ronaț">Ronaț</SelectItem>
+                  <SelectItem value="Sever Bocu">Sever Bocu</SelectItem>
+                  <SelectItem value="Soarelui">Soarelui</SelectItem>
+                  <SelectItem value="Steaua">Steaua</SelectItem>
+                  <SelectItem value="Șagului">Șagului</SelectItem>
+                  <SelectItem value="Tipografilor">Tipografilor</SelectItem>
+                  <SelectItem value="Torontalului">Torontalului</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <Button className="bg-primary text-primary-foreground">
+            <Button className="bg-primary text-primary-foreground" onClick={applyFilters}>
               Apply Filters
             </Button>
           </div>
@@ -106,10 +185,9 @@ const Analytics = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Total Violations</p>
-                <p className="text-3xl font-bold">189</p>
-                <p className="text-sm text-success mt-2 flex items-center gap-1">
-                  <TrendingUp className="h-4 w-4" />
-                  +12% from last week
+                <p className="text-3xl font-bold">{analyticsData?.stats.total_violations || 0}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  This period
                 </p>
               </div>
               <div className="p-3 bg-alert/10 rounded-lg">
@@ -122,9 +200,11 @@ const Analytics = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Fines Issued</p>
-                <p className="text-3xl font-bold">156</p>
+                <p className="text-3xl font-bold">{analyticsData?.stats.fines_issued || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  82.5% confirmation rate
+                  {analyticsData?.stats.total_violations ? 
+                    ((analyticsData.stats.fines_issued / analyticsData.stats.total_violations) * 100).toFixed(1) 
+                    : 0}% confirmation rate
                 </p>
               </div>
               <div className="p-3 bg-success/10 rounded-lg">
@@ -137,7 +217,7 @@ const Analytics = () => {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Revenue Generated</p>
-                <p className="text-3xl font-bold">31,200 RON</p>
+                <p className="text-3xl font-bold">{(analyticsData?.stats.revenue || 0).toLocaleString()} RON</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   This period
                 </p>
@@ -155,7 +235,7 @@ const Analytics = () => {
           <Card className="p-6">
             <h3 className="font-bold text-lg mb-4">Violations Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={violationsOverTime}>
+              <LineChart data={analyticsData?.violations_over_time || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
@@ -211,7 +291,7 @@ const Analytics = () => {
           <Card className="p-6 lg:col-span-2">
             <h3 className="font-bold text-lg mb-4">Fines Issued vs Incidents Reviewed</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={reviewStats}>
+              <BarChart data={analyticsData?.review_stats || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
