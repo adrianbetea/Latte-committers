@@ -152,7 +152,7 @@ exports.createIncident = async (req, res) => {
 exports.updateIncidentStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, car_number, fine_id } = req.body;
+        const { status, car_number, fine_id, admin_notes } = req.body;
 
         // Validate status
         const validStatuses = ['pending', 'rejected', 'resolved_and_fined', 'resolved'];
@@ -165,9 +165,9 @@ exports.updateIncidentStatus = async (req, res) => {
 
         const [result] = await db.query(
             `UPDATE incidents 
-       SET status = ?, car_number = ?, fine_id = ? 
+       SET status = ?, car_number = ?, fine_id = ?, admin_notes = ? 
        WHERE id = ?`,
-            [status, car_number || null, fine_id || null, id]
+            [status, car_number || null, fine_id || null, admin_notes || null, id]
         );
 
         if (result.affectedRows === 0) {
@@ -294,7 +294,7 @@ exports.getAnalytics = async (req, res) => {
             params.push(district);
         }
 
-        const whereClause = whereConditions.length > 0 
+        const whereClause = whereConditions.length > 0
             ? 'WHERE ' + whereConditions.join(' AND ')
             : '';
 

@@ -64,7 +64,6 @@ const IncidentCard = ({ incident, onClick, isSelected }: IncidentCardProps) => {
         <span className="font-semibold text-alert">
           {formatDuration(incident.duration)}
         </span>
-        <span className="text-muted-foreground">violation</span>
       </div>
 
       <div className="mt-3 text-xs text-muted-foreground">

@@ -45,7 +45,7 @@ const Analytics = () => {
 
       const response = await fetch(`http://localhost:3000/api/incidents/analytics?${params.toString()}`);
       const result = await response.json();
-      
+
       if (result.success) {
         setAnalyticsData(result.data);
       }
@@ -99,13 +99,14 @@ const Analytics = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header newIncidentsCount={newIncidentsCount} />
-      
+
       <main className="flex-1 container mx-auto px-6 py-6">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2">Reports & Analytics</h1>
           <p className="text-muted-foreground">
-            Historical violation data and enforcement statistics
+            Overview of past parking incidents and related information
           </p>
+
         </div>
 
         {/* Filters */}
@@ -184,7 +185,7 @@ const Analytics = () => {
           <Card className="p-6">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Total Violations</p>
+                <p className="text-sm text-muted-foreground mb-1">Total incidents</p>
                 <p className="text-3xl font-bold">{analyticsData?.stats.total_violations || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">
                   This period
@@ -202,8 +203,8 @@ const Analytics = () => {
                 <p className="text-sm text-muted-foreground mb-1">Fines Issued</p>
                 <p className="text-3xl font-bold">{analyticsData?.stats.fines_issued || 0}</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  {analyticsData?.stats.total_violations ? 
-                    ((analyticsData.stats.fines_issued / analyticsData.stats.total_violations) * 100).toFixed(1) 
+                  {analyticsData?.stats.total_violations ?
+                    ((analyticsData.stats.fines_issued / analyticsData.stats.total_violations) * 100).toFixed(1)
                     : 0}% confirmation rate
                 </p>
               </div>
@@ -233,23 +234,23 @@ const Analytics = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Line Chart - Violations Over Time */}
           <Card className="p-6">
-            <h3 className="font-bold text-lg mb-4">Violations Over Time</h3>
+            <h3 className="font-bold text-lg mb-4">Incidents Over Time</h3>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={analyticsData?.violations_over_time || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '6px',
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="violations" 
-                  stroke="hsl(var(--alert))" 
+                <Line
+                  type="monotone"
+                  dataKey="violations"
+                  stroke="hsl(var(--alert))"
                   strokeWidth={2}
                   dot={{ fill: 'hsl(var(--alert))' }}
                 />
@@ -259,19 +260,19 @@ const Analytics = () => {
 
           {/* Bar Chart - Hotspots */}
           <Card className="p-6">
-            <h3 className="font-bold text-lg mb-4">Violation Hotspots</h3>
+            <h3 className="font-bold text-lg mb-4">Incidents Hotspots</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={hotspotData} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                <YAxis 
-                  dataKey="location" 
-                  type="category" 
+                <YAxis
+                  dataKey="location"
+                  type="category"
                   width={150}
                   stroke="hsl(var(--muted-foreground))"
                   style={{ fontSize: '12px' }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',
@@ -295,7 +296,7 @@ const Analytics = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" />
                 <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
                     backgroundColor: 'hsl(var(--card))',
                     border: '1px solid hsl(var(--border))',

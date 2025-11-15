@@ -143,30 +143,89 @@ const IncidentReview = () => {
     return hours > 0 ? `${hours} hours ${mins} minutes` : `${mins} minutes`;
   };
 
-  const handleConfirmViolation = () => {
-    const selectedFineData = selectedFine ? fines.find(f => f.id.toString() === selectedFine) : null;
-    const fineMessage = selectedFineData
-      ? `Fine: ${selectedFineData.name} (${selectedFineData.value} RON)`
-      : 'No fine selected';
+  const handleConfirmViolation = async () => {
+    if (!notes.trim()) {
+      toast.error('Please provide admin notes');
+      return;
+    }
 
-    toast.success('Fine issued successfully', {
-      description: `Violation for ${incident.plateNumber} confirmed. ${fineMessage}`,
-    });
-    setTimeout(() => navigate('/dashboard'), 1500);
+    try {
+      const updateData: any = {
+        status: 'resolved_and_fined',
+        car_number: incident.plateNumber,
+        admin_notes: notes,
+      };
+
+      // Add fine_id if a fine is selected
+      if (selectedFine && selectedFine !== 'none') {
+        updateData.fine_id = parseInt(selectedFine);
+      }
+
+      const response = await fetch(`http://localhost:3000/api/incidents/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const selectedFineData = selectedFine && selectedFine !== 'none'
+          ? fines.find(f => f.id.toString() === selectedFine)
+          : null;
+        const fineMessage = selectedFineData
+          ? `Fine: ${selectedFineData.name} (${selectedFineData.value} RON)`
+          : 'No fine issued';
+
+        toast.success('Violation confirmed successfully', {
+          description: `${incident.plateNumber} marked as resolved and fined. ${fineMessage}`,
+        });
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } else {
+        toast.error('Failed to update incident');
+      }
+    } catch (error) {
+      console.error('Error confirming violation:', error);
+      toast.error('Failed to confirm violation');
+    }
   };
 
-  const handleDismissIncident = () => {
+  const handleDismissIncident = async () => {
     if (!notes.trim()) {
       toast.error('Please provide a reason for dismissal');
       return;
     }
-    toast.info('Incident dismissed', {
-      description: `${incident.plateNumber} marked as false positive.`,
-    });
-    setTimeout(() => navigate('/dashboard'), 1500);
-  };
 
-  return (
+    try {
+      const response = await fetch(`http://localhost:3000/api/incidents/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'resolved',
+          car_number: incident.plateNumber,
+          admin_notes: notes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.info('Incident dismissed', {
+          description: `${incident.plateNumber} marked as resolved (false positive).`,
+        });
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } else {
+        toast.error('Failed to update incident');
+      }
+    } catch (error) {
+      console.error('Error dismissing incident:', error);
+      toast.error('Failed to dismiss incident');
+    }
+  }; return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header newIncidentsCount={newIncidents.length} />
 
@@ -277,96 +336,170 @@ const IncidentReview = () => {
           {/* Right Column - Action Panel */}
           <div className="col-span-12 lg:col-span-5 space-y-6">
             <Card className="p-6 sticky top-6">
-              <h2 className="text-xl font-bold mb-6">Review Actions</h2>
+              {incident.status === 'pending' ? (
+                <>
+                  <h2 className="text-xl font-bold mb-6">Review Actions</h2>
 
-              <div className="space-y-4 mb-6">
-                <div>
-                  <Label htmlFor="fine-select" className="text-base font-semibold mb-2">
-                    Select Fine (Optional)
-                  </Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Choose the appropriate fine for this violation
-                  </p>
-                  <Select value={selectedFine} onValueChange={setSelectedFine}>
-                    <SelectTrigger id="fine-select">
-                      <SelectValue placeholder="No fine selected" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No fine</SelectItem>
-                      {fines.map((fine) => (
-                        <SelectItem key={fine.id} value={fine.id.toString()}>
-                          {fine.name} - {fine.value} RON
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <Label htmlFor="fine-select" className="text-base font-semibold mb-2">
+                        Select Fine (Optional)
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Choose the appropriate fine for this violation
+                      </p>
+                      <Select value={selectedFine} onValueChange={setSelectedFine}>
+                        <SelectTrigger id="fine-select">
+                          <SelectValue placeholder="No fine selected" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No fine</SelectItem>
+                          {fines.map((fine) => (
+                            <SelectItem key={fine.id} value={fine.id.toString()}>
+                              {fine.name} - {fine.value} RON
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div>
-                  <Label htmlFor="notes" className="text-base font-semibold mb-2">
-                    Admin Notes <span className="text-alert">*</span>
-                  </Label>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Mandatory notes for incident review and record keeping
-                  </p>
-                  <Textarea
-                    id="notes"
-                    placeholder="Enter your observations, verification details, or reason for dismissal..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className="min-h-32"
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor="notes" className="text-base font-semibold mb-2">
+                        Admin Notes <span className="text-alert">*</span>
+                      </Label>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Mandatory notes for incident review and record keeping
+                      </p>
+                      <Textarea
+                        id="notes"
+                        placeholder="Enter your observations, verification details, or reason for dismissal..."
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        className="min-h-32"
+                      />
+                    </div>
 
-                <div className="p-4 bg-muted rounded-lg">
-                  <h4 className="font-semibold mb-2 text-sm">Location Reference</h4>
-                  <div className="aspect-video bg-background rounded overflow-hidden">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      frameBorder="0"
-                      style={{ border: 0 }}
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${incident.location.lng - 0.002},${incident.location.lat - 0.002},${incident.location.lng + 0.002},${incident.location.lat + 0.002}&layer=mapnik&marker=${incident.location.lat},${incident.location.lng}`}
-                      allowFullScreen
-                    />
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-semibold mb-2 text-sm">Location Reference</h4>
+                      <div className="aspect-video bg-background rounded overflow-hidden">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          style={{ border: 0 }}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${incident.location.lng - 0.002},${incident.location.lat - 0.002},${incident.location.lng + 0.002},${incident.location.lat + 0.002}&layer=mapnik&marker=${incident.location.lat},${incident.location.lng}`}
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="space-y-3">
-                <Button
-                  className="w-full bg-success hover:bg-success/90 text-success-foreground"
-                  size="lg"
-                  onClick={handleConfirmViolation}
-                >
-                  <CheckCircle className="h-5 w-5 mr-2" />
-                  Confirm Violation & Issue Fine
-                </Button>
+                  <div className="space-y-3">
+                    <Button
+                      className="w-full bg-success hover:bg-success/90 text-success-foreground"
+                      size="lg"
+                      onClick={handleConfirmViolation}
+                    >
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Confirm Violation & Issue Fine
+                    </Button>
 
-                <Button
-                  variant="outline"
-                  className="w-full border-alert text-alert hover:bg-alert hover:text-alert-foreground"
-                  size="lg"
-                  onClick={handleDismissIncident}
-                >
-                  <XCircle className="h-5 w-5 mr-2" />
-                  Dismiss Incident / False Positive
-                </Button>
-              </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-alert text-alert hover:bg-alert hover:text-alert-foreground"
+                      size="lg"
+                      onClick={handleDismissIncident}
+                    >
+                      <XCircle className="h-5 w-5 mr-2" />
+                      Dismiss Incident / False Positive
+                    </Button>
+                  </div>
 
-              {selectedFine && selectedFine !== 'none' && (
-                <div className="mt-6 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
-                  <p className="font-semibold mb-1">Selected Fine Information:</p>
-                  {(() => {
-                    const fine = fines.find(f => f.id.toString() === selectedFine);
-                    return fine ? (
-                      <>
-                        <p>{fine.name}: {fine.value} RON</p>
-                        <p className="text-xs mt-2">Payment due within 15 days</p>
-                      </>
-                    ) : null;
-                  })()}
-                </div>
+                  {selectedFine && selectedFine !== 'none' && (
+                    <div className="mt-6 p-4 bg-muted rounded-lg text-sm text-muted-foreground">
+                      <p className="font-semibold mb-1">Selected Fine Information:</p>
+                      {(() => {
+                        const fine = fines.find(f => f.id.toString() === selectedFine);
+                        return fine ? (
+                          <>
+                            <p>{fine.name}: {fine.value} RON</p>
+                            <p className="text-xs mt-2">Payment due within 15 days</p>
+                          </>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold mb-6">Incident Resolution</h2>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-muted rounded-lg">
+                      <Label className="text-sm font-semibold mb-2 block">Status</Label>
+                      <Badge className={
+                        incident.status === 'resolved_and_fined'
+                          ? 'bg-green-700 text-white'
+                          : incident.status === 'resolved'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-gray-500 text-white'
+                      }>
+                        {incident.status === 'resolved_and_fined'
+                          ? 'Resolved & Fined'
+                          : incident.status === 'resolved'
+                            ? 'Resolved'
+                            : incident.status === 'rejected'
+                              ? 'Rejected'
+                              : incident.status}
+                      </Badge>
+                    </div>
+
+                    {incident.status === 'resolved_and_fined' && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+                        <Label className="text-sm font-semibold mb-2 block text-green-800 dark:text-green-200">
+                          Fine Issued
+                        </Label>
+                        <p className="text-sm text-green-700 dark:text-green-300">
+                          This incident has been resolved with a fine.
+                        </p>
+                      </div>
+                    )}
+
+                    {incident.status === 'resolved' && (
+                      <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <Label className="text-sm font-semibold mb-2 block text-blue-800 dark:text-blue-200">
+                          Incident Dismissed
+                        </Label>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">
+                          This incident has been resolved without issuing a fine.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="p-4 bg-muted rounded-lg">
+                      <h4 className="font-semibold mb-2 text-sm">Location Reference</h4>
+                      <div className="aspect-video bg-background rounded overflow-hidden">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          style={{ border: 0 }}
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${incident.location.lng - 0.002},${incident.location.lat - 0.002},${incident.location.lng + 0.002},${incident.location.lat + 0.002}&layer=mapnik&marker=${incident.location.lat},${incident.location.lng}`}
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => navigate('/dashboard')}
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Back to Dashboard
+                    </Button>
+                  </div>
+                </>
               )}
             </Card>
           </div>
