@@ -33,7 +33,7 @@ const PublicMap = () => {
   const [loading, setLoading] = useState(true);
 
   const districts = [
-    'all', 'Centru', 'Cetate', 'Elisabetin', 'Fabric', 'Iosefin', 'Josefin',
+    'all', 'Centru', 'Cetate', 'Elisabetin', 'Fabric', 'Iosefin',
     'Mehala', 'Plopi', 'Fratelia', 'Favorit', 'Lipovei', 'Soarelui',
     'Circumvalațiunii', 'Dorobanților', 'Dâmbovița', 'Steaua', 'Buziașului',
     'Ghiroda', 'Săcălaz', 'Tipografilor', 'Complex Studențesc', 'Calea Șagului',
@@ -121,7 +121,7 @@ const PublicMap = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Timișoara Parking Monitor</h1>
+              <h1 className="text-2xl font-bold text-foreground">Timișoara SideWalk Watcher</h1>
               <p className="text-sm text-muted-foreground">Public transparency dashboard</p>
             </div>
             <Badge variant="outline" className="text-sm">
@@ -136,7 +136,7 @@ const PublicMap = () => {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card className="p-4">
-            <div className="text-sm text-muted-foreground mb-1">Total Violations</div>
+            <div className="text-sm text-muted-foreground mb-1">Total Incidents</div>
             <div className="text-3xl font-bold">{stats.total_violations}</div>
           </Card>
           <Card className="p-4">
@@ -201,7 +201,7 @@ const PublicMap = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingUp className="h-4 w-4 text-red-500" />
-                      <h3 className="font-semibold text-sm">Most Violations</h3>
+                      <h3 className="font-semibold text-sm">Most Incidents</h3>
                     </div>
                     <div className="space-y-2">
                       {districtOverview.slice(0, 3).map((item, idx) => (
@@ -232,7 +232,7 @@ const PublicMap = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <TrendingDown className="h-4 w-4 text-green-500" />
-                      <h3 className="font-semibold text-sm">Fewest Violations</h3>
+                      <h3 className="font-semibold text-sm">Fewest Incidents</h3>
                     </div>
                     <div className="space-y-2">
                       {districtOverview.slice(-3).reverse().map((item, idx) => (
@@ -301,7 +301,7 @@ const PublicMap = () => {
             <Card className="p-4 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
               <h3 className="font-semibold mb-2 text-sm">ℹ️ About This Dashboard</h3>
               <p className="text-xs text-muted-foreground">
-                This public dashboard shows resolved parking violations across Timișoara. 
+                This public dashboard shows resolved parking incidents across Timișoara. 
                 Vehicle identities are anonymized for privacy. Data is updated in real-time 
                 to promote transparency and awareness of parking enforcement.
               </p>
