@@ -1,0 +1,8 @@
+# Ignore all images in this directory
+*.jpg
+*.jpeg
+*.png
+*.gif
+
+# But keep the directory structure
+!.gitignore

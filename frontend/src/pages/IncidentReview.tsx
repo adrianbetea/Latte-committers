@@ -51,6 +51,14 @@ const IncidentReview = () => {
 
         if (incidentData.success) {
           const rawIncident = incidentData.data;
+          // Construiește URL-urile pentru imagini din baza de date
+          const getImageUrl = (photoPath: string) => {
+            if (!photoPath) return null;
+            // Extrage doar numele fișierului din path
+            const filename = photoPath.split(/[/\\]/).pop();
+            return `http://localhost:3000/images/${filename}`;
+          };
+
           const transformedIncident: Incident = {
             id: rawIncident.id.toString(),
             plateNumber: rawIncident.car_number || 'Unknown',
@@ -58,14 +66,14 @@ const IncidentReview = () => {
               lat: parseFloat(rawIncident.latitude),
               lng: parseFloat(rawIncident.longitude),
               street: rawIncident.address,
-              district: rawIncident.address.split(',')[0] || 'Unknown',
+              district: rawIncident.district || rawIncident.address.split(',')[0] || 'Unknown',
             },
             violationStart: new Date(rawIncident.datetime),
             duration: Math.floor((Date.now() - new Date(rawIncident.datetime).getTime()) / 60000),
             status: rawIncident.status,
             images: {
-              fullCar: rawIncident.photos?.[0]?.photo_path || 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-              licensePlate: rawIncident.photos?.[1]?.photo_path || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
+              fullCar: getImageUrl(rawIncident.photos?.[0]?.photo_path) || 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+              licensePlate: getImageUrl(rawIncident.photos?.[1]?.photo_path) || 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
             },
             notes: rawIncident.ai_description,
           };
@@ -321,16 +329,10 @@ const IncidentReview = () => {
                 src={incident.images.fullCar}
                 alt="Vehicle"
                 className="w-full rounded-lg mb-4"
-              />
-            </Card>
-
-            {/* License Plate Close-up */}
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3">License Plate</h3>
-              <img
-                src={incident.images.licensePlate}
-                alt="License Plate"
-                className="w-full max-w-md mx-auto rounded-lg"
+                onError={(e) => {
+                  const img = e.target as HTMLImageElement;
+                  img.src = 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800';
+                }}
               />
             </Card>
           </div>
@@ -341,6 +343,19 @@ const IncidentReview = () => {
               {incident.status === 'pending' ? (
                 <>
                   <h2 className="text-xl font-bold mb-6">Review Actions</h2>
+
+                  {/* AI Detection Reasoning */}
+                  {incident.notes && (
+                    <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                      <h3 className="font-semibold mb-2 text-sm flex items-center gap-2">
+                        <span className="text-blue-600 dark:text-blue-400">🤖</span>
+                        AI Detection Analysis
+                      </h3>
+                      <div className="text-sm text-foreground whitespace-pre-wrap">
+                        {incident.notes}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-4 mb-6">
                     <div>

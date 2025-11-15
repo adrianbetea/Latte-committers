@@ -208,9 +208,16 @@ def send_incident_to_backend(ai_response, frame, plate_number):
         street, district = get_address_from_coords(latitude, longitude)
         print(f"✓ Adresă: {street}, District: {district}")
         
-        # Salvează frame-ul temporar
-        frame_path = f"incident_frame_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+        # Creează directorul pentru imagini dacă nu există
+        images_dir = "frame_image_localDB"
+        os.makedirs(images_dir, exist_ok=True)
+        
+        # Salvează frame-ul în directorul dedicat
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        frame_filename = f"incident_{timestamp}.jpg"
+        frame_path = os.path.join(images_dir, frame_filename)
         cv2.imwrite(frame_path, frame)
+        print(f"📸 Imagine salvată: {frame_path}")
         
         # Extrage informațiile din răspunsul AI
         incident_data = {
@@ -221,7 +228,7 @@ def send_incident_to_backend(ai_response, frame, plate_number):
             "datetime": datetime.now().isoformat(),
             "ai_description": ai_response,
             "car_number": plate_number,
-            "photos": [frame_path]
+            "photos": [frame_path]  # Path relativ: frame_image_localDB/incident_YYYYMMDD_HHMMSS.jpg
         }
         
         # Trimite la backend

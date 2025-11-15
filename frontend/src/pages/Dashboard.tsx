@@ -21,6 +21,13 @@ const Dashboard = () => {
       const data = await response.json();
 
       if (data.success) {
+        // Helper function to get image URL
+        const getImageUrl = (photoPath: string) => {
+          if (!photoPath) return 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800';
+          const filename = photoPath.split(/[/\\]/).pop();
+          return `http://localhost:3000/images/${filename}`;
+        };
+
         // Transform backend data to frontend format
         const transformedIncidents: Incident[] = data.data.map((incident: any) => ({
           id: incident.id.toString(),
@@ -29,14 +36,14 @@ const Dashboard = () => {
             lat: parseFloat(incident.latitude),
             lng: parseFloat(incident.longitude),
             street: incident.address,
-            district: incident.address.split(',')[0] || 'Unknown',
+            district: incident.district || incident.address.split(',')[0] || 'Unknown',
           },
           violationStart: new Date(incident.datetime),
           duration: Math.floor((Date.now() - new Date(incident.datetime).getTime()) / 60000),
           status: incident.status,
           images: {
-            fullCar: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-            licensePlate: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
+            fullCar: getImageUrl(incident.photos?.[0]?.photo_path),
+            licensePlate: getImageUrl(incident.photos?.[1]?.photo_path) || getImageUrl(incident.photos?.[0]?.photo_path),
           },
           notes: incident.ai_description,
         }));

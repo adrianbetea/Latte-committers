@@ -199,17 +199,44 @@ const IncidentMap = ({ incidents, selectedIncidentId, onIncidentSelect }: Incide
             el.style.opacity = '1';
           });
 
+          // Format date/time
+          const incidentDate = new Date(incident.violationStart);
+          const formattedDate = incidentDate.toLocaleDateString('ro-RO');
+          const formattedTime = incidentDate.toLocaleTimeString('ro-RO', { hour: '2-digit', minute: '2-digit' });
+          
+          // Get status badge
+          const statusColors = {
+            'pending': { bg: '#fef3c7', color: '#92400e', text: 'Pending Review' },
+            'resolved_and_fined': { bg: '#fee2e2', color: '#991b1b', text: 'Fined' },
+            'resolved': { bg: '#dcfce7', color: '#166534', text: 'Resolved' },
+            'rejected': { bg: '#f3f4f6', color: '#374151', text: 'Dismissed' }
+          };
+          const status = statusColors[incident.status as keyof typeof statusColors] || statusColors['pending'];
+
           const popupHTML = `
-            <div style="padding: 12px; min-width: 200px;">
-              <strong style="color: #ef4444; font-size: 14px;">${incident.plateNumber}</strong><br/>
-              <span style="font-size: 12px; color: #666;">${incident.location.street}</span><br/>
-              <span style="font-size: 11px; color: #999;">Duration: ${incident.duration} min</span><br/>
-              <span style="font-size: 11px; color: #999;">Lat: ${incident.location.lat.toFixed(4)}, Lng: ${incident.location.lng.toFixed(4)}</span>
-              <div style="margin-top: 8px;">
-                <button onclick="window.location.href='/incident/${incident.id}'" 
-                  style="width: 100%; padding: 6px; background-color: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                  View Incident
-                </button>
+            <div style="padding: 14px; min-width: 240px; max-width: 300px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                <strong style="color: #ef4444; font-size: 15px;">${incident.plateNumber}</strong>
+                <span style="background-color: ${status.bg}; color: ${status.color}; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">
+                  ${status.text}
+                </span>
+              </div>
+              
+              <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
+                <div style="font-size: 12px; color: #374151; margin-bottom: 4px;">
+                  📍 ${incident.location.street}
+                </div>
+                <div style="font-size: 11px; color: #6b7280;">
+                  🏘️ District: ${incident.location.district}
+                </div>
+              </div>
+              
+              <div style="font-size: 11px; color: #6b7280; line-height: 1.6;">
+                <div>📅 ${formattedDate} at ${formattedTime}</div>
+                <div>⏱️ Duration: ${incident.duration} minutes</div>
+                <div style="font-size: 10px; color: #9ca3af; margin-top: 6px;">
+                  Coordinates: ${incident.location.lat.toFixed(4)}, ${incident.location.lng.toFixed(4)}
+                </div>
               </div>
             </div>
           `;

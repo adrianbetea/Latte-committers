@@ -8,6 +8,7 @@ import IncidentReview from "./pages/IncidentReview";
 import AllIncidents from "./pages/AllIncidents";
 import Analytics from "./pages/Analytics";
 import CameraView from "./pages/CameraView";
+import PublicMap from "./pages/PublicMap";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
@@ -90,6 +91,8 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          {/* Public route - no authentication required */}
+          <Route path="/public" element={<PublicMap />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

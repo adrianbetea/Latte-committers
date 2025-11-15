@@ -13,6 +13,15 @@ exports.getAllIncidents = async (req, res) => {
       ORDER BY i.datetime DESC
     `);
 
+        // Fetch photos for each incident
+        for (let incident of rows) {
+            const [photos] = await db.query(
+                'SELECT * FROM incident_photo WHERE incident_id = ?',
+                [incident.id]
+            );
+            incident.photos = photos;
+        }
+
         res.json({
             success: true,
             data: rows
