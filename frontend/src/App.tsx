@@ -11,6 +11,7 @@ import CameraView from "./pages/CameraView";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import CreateUser from "./pages/CreateUser";
+import UsersHistory from "./pages/UsersHistory";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <CreateUser />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users-history"
+            element={
+              <ProtectedRoute>
+                <UsersHistory />
               </ProtectedRoute>
             }
           />

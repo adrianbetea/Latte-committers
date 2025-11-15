@@ -55,6 +55,13 @@ exports.login = async (req, res) => {
             sameSite: 'lax'
         });
 
+                // Update last_access timestamp for the user (non-blocking)
+                try {
+                    await db.query('UPDATE users SET last_access = NOW() WHERE id = ?', [user.id]);
+                } catch (err) {
+                    console.error('Failed to update last_access for user', user.id, err);
+                }
+
         console.log('Login successful for:', email);
 
         res.json({
