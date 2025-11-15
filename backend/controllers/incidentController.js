@@ -152,7 +152,7 @@ exports.createIncident = async (req, res) => {
 exports.updateIncidentStatus = async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, car_number, fine_id } = req.body;
+        const { status, car_number, fine_id, admin_notes } = req.body;
 
         // Validate status
         const validStatuses = ['pending', 'rejected', 'resolved_and_fined', 'resolved'];
@@ -165,9 +165,9 @@ exports.updateIncidentStatus = async (req, res) => {
 
         const [result] = await db.query(
             `UPDATE incidents 
-       SET status = ?, car_number = ?, fine_id = ? 
+       SET status = ?, car_number = ?, fine_id = ?, admin_notes = ? 
        WHERE id = ?`,
-            [status, car_number || null, fine_id || null, id]
+            [status, car_number || null, fine_id || null, admin_notes || null, id]
         );
 
         if (result.affectedRows === 0) {
@@ -294,7 +294,7 @@ exports.getAnalytics = async (req, res) => {
             params.push(district);
         }
 
-        const whereClause = whereConditions.length > 0 
+        const whereClause = whereConditions.length > 0
             ? 'WHERE ' + whereConditions.join(' AND ')
             : '';
 
@@ -321,17 +321,111 @@ exports.getAnalytics = async (req, res) => {
             LIMIT 7
         `, params);
 
-        // Get violation hotspots
-        const [hotspots] = await db.query(`
-            SELECT 
-                address as location,
-                COUNT(*) as count
-            FROM incidents i
-            ${whereClause}
-            GROUP BY address
-            ORDER BY count DESC
-            LIMIT 5
-        `, params);
+        // Get district overview
+        let districtOverview = [];
+        
+        if (district && district !== 'all') {
+            // Single district view - get stats for that district for last week
+            const [districtStatsLastWeek] = await db.query(`
+                SELECT 
+                    district,
+                    COUNT(*) as count
+                FROM incidents i
+                WHERE i.district = ?
+                  AND i.datetime >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                GROUP BY district
+            `, [district]);
+            
+            // Also get total count for the selected period
+            const [districtStatsTotal] = await db.query(`
+                SELECT 
+                    district,
+                    COUNT(*) as count
+                FROM incidents i
+                ${whereClause}
+                GROUP BY district
+            `, params);
+            
+            if (districtStatsLastWeek.length > 0) {
+                const weeklyCount = districtStatsLastWeek[0].count;
+                const totalCount = districtStatsTotal.length > 0 ? districtStatsTotal[0].count : 0;
+                let score = 'Low';
+                let color = '#10b981'; // Green
+                
+                // Risk level based on weekly average (incidents per week)
+                if (weeklyCount >= 10) {
+                    score = 'Critical';
+                    color = '#ef4444'; // Red
+                } else if (weeklyCount >= 5) {
+                    score = 'High';
+                    color = '#f97316'; // Orange
+                } else if (weeklyCount >= 2) {
+                    score = 'Medium';
+                    color = '#eab308'; // Yellow
+                }
+                
+                districtOverview = [{
+                    district: district,
+                    count: totalCount,
+                    weeklyCount: weeklyCount,
+                    score: score,
+                    color: color
+                }];
+            } else if (districtStatsTotal.length > 0) {
+                // No incidents in last week, but has incidents in the period
+                districtOverview = [{
+                    district: district,
+                    count: districtStatsTotal[0].count,
+                    weeklyCount: 0,
+                    score: 'Low',
+                    color: '#10b981'
+                }];
+            }
+        } else {
+            // All districts view - get top 3 and worst 3
+            const whereConditionsForDistricts = [];
+            const paramsForDistricts = [];
+            
+            if (startDate && endDate) {
+                whereConditionsForDistricts.push('datetime BETWEEN ? AND ?');
+                paramsForDistricts.push(startDate, endDate);
+            }
+            
+            const whereClauseForDistricts = whereConditionsForDistricts.length > 0
+                ? 'WHERE ' + whereConditionsForDistricts.join(' AND ')
+                : '';
+            
+            const [allDistricts] = await db.query(`
+                SELECT 
+                    district,
+                    COUNT(*) as count
+                FROM incidents
+                ${whereClauseForDistricts}
+                GROUP BY district
+                HAVING district IS NOT NULL
+                ORDER BY count DESC
+            `, paramsForDistricts);
+            
+            if (allDistricts.length > 0) {
+                // Get top 3
+                const top3 = allDistricts.slice(0, 3).map(d => ({
+                    district: d.district,
+                    count: d.count,
+                    type: 'top',
+                    color: '#ef4444' // Red for high incidents
+                }));
+                
+                // Get worst 3 (lowest incidents)
+                const worst3 = allDistricts.slice(-3).reverse().map(d => ({
+                    district: d.district,
+                    count: d.count,
+                    type: 'worst',
+                    color: '#10b981' // Green for low incidents
+                }));
+                
+                districtOverview = [...top3, ...worst3];
+            }
+        }
 
         // Get incidents reviewed
         const [reviewStats] = await db.query(`
@@ -351,11 +445,7 @@ exports.getAnalytics = async (req, res) => {
                     incidents_reviewed: reviewStats[0].incidents_reviewed || 0
                 },
                 violations_over_time: violationsOverTime.reverse(),
-                hotspots: hotspots,
-                review_stats: [
-                    { category: 'Fines Issued', count: totalStats[0].fines_issued || 0 },
-                    { category: 'Incidents Reviewed', count: reviewStats[0].incidents_reviewed || 0 }
-                ]
+                district_overview: districtOverview
             }
         });
     } catch (error) {
