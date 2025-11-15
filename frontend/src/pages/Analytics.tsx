@@ -18,8 +18,7 @@ interface AnalyticsData {
     incidents_reviewed: number;
   };
   violations_over_time: Array<{ date: string; violations: number }>;
-  hotspots: Array<{ location: string; count: number }>;
-  review_stats: Array<{ category: string; count: number }>;
+  district_overview: Array<{ district: string; count: number; weeklyCount?: number; score?: string; type?: string; color: string }>;
 }
 
 const Analytics = () => {
@@ -78,12 +77,8 @@ const Analytics = () => {
     fetchAnalytics();
   };
 
-  // Add colors to hotspot data
-  const hotspotColors = ['#ef4444', '#f97316', '#f59e0b', '#eab308', '#84cc16'];
-  const hotspotData = analyticsData?.hotspots.map((item, index) => ({
-    ...item,
-    color: hotspotColors[index % hotspotColors.length]
-  })) || [];
+  // Process district overview data
+  const districtOverviewData = analyticsData?.district_overview || [];
 
   if (loading) {
     return (
@@ -258,54 +253,74 @@ const Analytics = () => {
             </ResponsiveContainer>
           </Card>
 
-          {/* Bar Chart - Hotspots */}
+          {/* District Overview */}
           <Card className="p-6">
-            <h3 className="font-bold text-lg mb-4">Incidents Hotspots</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={hotspotData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                <YAxis
-                  dataKey="location"
-                  type="category"
-                  width={150}
-                  stroke="hsl(var(--muted-foreground))"
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                  }}
-                />
-                <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-                  {hotspotData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+            <h3 className="font-bold text-lg mb-4">District Overview</h3>
+            {district === 'all' ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-semibold text-red-600 mb-2">Top 3 Districts (Most Incidents)</p>
+                  {districtOverviewData.filter(d => d.type === 'top').map((item, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 border-b">
+                      <span className="font-medium">{item.district}</span>
+                      <span className="px-3 py-1 rounded-full text-sm font-semibold" 
+                        style={{ backgroundColor: item.color + '20', color: item.color }}>
+                        {item.count} incidents
+                      </span>
+                    </div>
                   ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-
-          {/* Bar Chart - Review Stats */}
-          <Card className="p-6 lg:col-span-2">
-            <h3 className="font-bold text-lg mb-4">Fines Issued vs Incidents Reviewed</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={analyticsData?.review_stats || []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="category" stroke="hsl(var(--muted-foreground))" />
-                <YAxis stroke="hsl(var(--muted-foreground))" />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'hsl(var(--card))',
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '6px',
-                  }}
-                />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-green-600 mb-2">Best 3 Districts (Least Incidents)</p>
+                  {districtOverviewData.filter(d => d.type === 'worst').map((item, index) => (
+                    <div key={index} className="flex items-center justify-between py-2 border-b">
+                      <span className="font-medium">{item.district}</span>
+                      <span className="px-3 py-1 rounded-full text-sm font-semibold" 
+                        style={{ backgroundColor: item.color + '20', color: item.color }}>
+                        {item.count} incidents
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {districtOverviewData.length > 0 ? (
+                  <div className="text-center">
+                    <div className="mb-4">
+                      <h4 className="text-2xl font-bold mb-2">{districtOverviewData[0].district}</h4>
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <p className="text-3xl font-bold">{districtOverviewData[0].weeklyCount || 0}</p>
+                          <p className="text-xs text-muted-foreground">Last Week</p>
+                        </div>
+                        <div>
+                          <p className="text-3xl font-bold">{districtOverviewData[0].count}</p>
+                          <p className="text-xs text-muted-foreground">Total (Period)</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="inline-block px-6 py-3 rounded-lg" 
+                      style={{ backgroundColor: districtOverviewData[0].color + '20' }}>
+                      <p className="text-lg font-bold" style={{ color: districtOverviewData[0].color }}>
+                        Risk Level: {districtOverviewData[0].score}
+                      </p>
+                    </div>
+                    <div className="mt-4 text-sm text-muted-foreground">
+                      <p className="font-semibold mb-2">Risk Level Scale (based on weekly average):</p>
+                      <div className="flex justify-center gap-2 mt-2">
+                        <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#10b98120', color: '#10b981' }}>Low (&lt;2/week)</span>
+                        <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#eab30820', color: '#eab308' }}>Medium (2-4/week)</span>
+                        <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#f9731620', color: '#f97316' }}>High (5-9/week)</span>
+                        <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: '#ef444420', color: '#ef4444' }}>Critical (10+/week)</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-center text-muted-foreground">No data available for this district</p>
+                )}
+              </div>
+            )}
           </Card>
         </div>
       </main>
