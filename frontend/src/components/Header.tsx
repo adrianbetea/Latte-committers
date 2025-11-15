@@ -1,8 +1,9 @@
-import { Bell, User, MapPin, BarChart3, LogOut } from "lucide-react";
+import { Bell, User, MapPin, BarChart3, LogOut, UserPlus } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 
 interface HeaderProps {
   newIncidentsCount: number;
@@ -12,16 +13,52 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const officerBadge = localStorage.getItem('officerBadge') || 'Unknown';
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth');
-    localStorage.removeItem('officerBadge');
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
-    navigate('/login');
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const response = await fetch('http://localhost:3000/api/auth/check', {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const data = await response.json();
+        if (data.success && data.authenticated && data.data.admin.isAdmin) {
+          setIsAdmin(true);
+        }
+      } catch (error) {
+        console.error('Error checking admin status:', error);
+      }
+    };
+    checkAdmin();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Logged Out",
+          description: "You have been successfully logged out.",
+        });
+        window.location.href = '/login';
+      } else {
+        throw new Error('Logout failed');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Error",
+        description: "An error occurred during logout.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -62,6 +99,17 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
               <BarChart3 className="h-5" />
               Analytics
             </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/create-user' ? 'bg-secondary/80' : ''
+                  }`}
+                onClick={() => navigate('/create-user')}
+              >
+                <UserPlus className="h-5" />
+                Create User
+              </Button>
+            )}
 
             <div className="flex items-center gap-3 border-l border-secondary-foreground/20 pl-6">
               <Button

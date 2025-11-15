@@ -9,6 +9,9 @@ import AllIncidents from "./pages/AllIncidents";
 import Analytics from "./pages/Analytics";
 import CameraView from "./pages/CameraView";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import CreateUser from "./pages/CreateUser";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +22,56 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/login" element={<Login />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/incidents" element={<AllIncidents />} />
-          <Route path="/incident/:id" element={<IncidentReview />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/camera/:id" element={<CameraView />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/incidents"
+            element={
+              <ProtectedRoute>
+                <AllIncidents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/incident/:id"
+            element={
+              <ProtectedRoute>
+                <IncidentReview />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/analytics"
+            element={
+              <ProtectedRoute>
+                <Analytics />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/camera/:id"
+            element={
+              <ProtectedRoute>
+                <CameraView />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-user"
+            element={
+              <ProtectedRoute>
+                <CreateUser />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

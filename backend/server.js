@@ -1,15 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const db = require('./config/database');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:8080'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['set-cookie']
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Test database connection
 db.getConnection()
@@ -24,9 +32,11 @@ db.getConnection()
 // Routes
 const incidentRoutes = require('./routes/incidentRoutes');
 const fineRoutes = require('./routes/fineRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 app.use('/api/incidents', incidentRoutes);
 app.use('/api/fines', fineRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

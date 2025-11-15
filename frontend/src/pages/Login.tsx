@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,7 @@ import { MapPin, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
-  const [badgeNumber, setBadgeNumber] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -16,11 +16,11 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!badgeNumber || !password) {
+
+    if (!email || !password) {
       toast({
         title: "Missing Credentials",
-        description: "Please enter both badge number and password.",
+        description: "Please enter both email and password.",
         variant: "destructive",
       });
       return;
@@ -28,21 +28,48 @@ const Login = () => {
 
     setIsLoading(true);
 
-    // Simulate authentication - replace with actual API call
-    setTimeout(() => {
-      // For demo purposes, accept any credentials
-      // In production, validate against backend
-      localStorage.setItem('auth', 'true');
-      localStorage.setItem('officerBadge', badgeNumber);
-      
-      toast({
-        title: "Authentication Successful",
-        description: "Welcome back, Officer!",
+    try {
+      console.log('Attempting login with:', { email, password: '***' });
+
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // Important for cookies
+        body: JSON.stringify({ email, password }),
       });
-      
-      navigate('/dashboard');
+
+      console.log('Response status:', response.status);
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Authentication Successful",
+          description: `Welcome back, ${data.data.admin.name}!`,
+        });
+
+        // Redirect to dashboard
+        window.location.href = '/dashboard';
+      } else {
+        console.error('Login failed:', data);
+        toast({
+          title: "Authentication Failed",
+          description: data.message || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Login error details:', error);
+      toast({
+        title: "Connection Error",
+        description: `Unable to connect to the server: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -56,7 +83,7 @@ const Login = () => {
             </div>
           </div>
           <h1 className="text-3xl font-bold tracking-tight">
-            Timișoara Smart Parking
+            Timișoara SideWalk Watcher
           </h1>
           <p className="text-muted-foreground mt-2">
             Municipality Officer Authentication
@@ -67,16 +94,16 @@ const Login = () => {
         <Card className="p-8 shadow-lg">
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="badge" className="flex items-center gap-2">
+              <Label htmlFor="email" className="flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" />
-                Badge Number
+                Email Address
               </Label>
               <Input
-                id="badge"
-                type="text"
-                placeholder="Enter your badge number"
-                value={badgeNumber}
-                onChange={(e) => setBadgeNumber(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
                 className="h-11"
               />
@@ -103,11 +130,6 @@ const Login = () => {
               {isLoading ? 'Authenticating...' : 'Sign In'}
             </Button>
           </form>
-
-          <div className="mt-6 pt-6 border-t text-center text-sm text-muted-foreground">
-            <p>For security issues, contact IT Support</p>
-            <p className="mt-1">Municipality of Timișoara</p>
-          </div>
         </Card>
 
         {/* Footer */}
