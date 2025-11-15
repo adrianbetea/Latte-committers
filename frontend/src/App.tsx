@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import IncidentReview from "./pages/IncidentReview";
 import Analytics from "./pages/Analytics";
+import CameraView from "./pages/CameraView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/incident/:id" element={<IncidentReview />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/camera/:id" element={<CameraView />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
