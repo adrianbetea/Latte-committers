@@ -1,4 +1,4 @@
-import { Bell, User, MapPin, BarChart3, LogOut, UserPlus } from "lucide-react";
+import { Bell, User, MapPin, BarChart3, LogOut, UserPlus, Users } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -90,6 +90,17 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
               <MapPin className="h-5" />
               All Incidents
             </Button>
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/users-history' ? 'bg-secondary/80' : ''
+                  }`}
+                onClick={() => navigate('/users-history')}
+              >
+                <Users className="h-5" />
+                Users History
+              </Button>
+            )}
             <Button
               variant="ghost"
               className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/analytics' ? 'bg-secondary/80' : ''

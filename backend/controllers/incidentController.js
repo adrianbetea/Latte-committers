@@ -181,6 +181,21 @@ exports.updateIncidentStatus = async (req, res) => {
             success: true,
             message: 'Incident updated successfully'
         });
+
+                // Log admin action into user_actions table if session available
+                try {
+                    const actorId = req.cookies && req.cookies.userSession ? req.cookies.userSession : null;
+                    if (actorId) {
+                        const actionType = `incident_status_update:${status}`;
+                        const details = JSON.stringify({ admin_notes: admin_notes || null, car_number: car_number || null, fine_id: fine_id || null });
+                        await db.query(
+                            'INSERT INTO user_actions (actor_id, incident_id, action_type, details) VALUES (?, ?, ?, ?)',
+                            [actorId, id, actionType, details]
+                        );
+                    }
+                } catch (logErr) {
+                    console.error('Failed to log user action:', logErr);
+                }
     } catch (error) {
         console.error('Error updating incident:', error);
         res.status(500).json({
