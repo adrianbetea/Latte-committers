@@ -84,6 +84,7 @@ exports.createIncident = async (req, res) => {
 
         const {
             address,
+            district,
             latitude,
             longitude,
             datetime,
@@ -105,9 +106,9 @@ exports.createIncident = async (req, res) => {
         // Insert incident
         const [result] = await connection.query(
             `INSERT INTO incidents 
-       (address, latitude, longitude, datetime, ai_description, car_number, fine_id, status) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')`,
-            [address, latitude, longitude, datetime, ai_description, car_number || null, fine_id || null]
+       (address, district, latitude, longitude, datetime, ai_description, car_number, fine_id, status) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [address, district || null, latitude, longitude, datetime, ai_description, car_number || null, fine_id || null]
         );
 
         const incidentId = result.insertId;
