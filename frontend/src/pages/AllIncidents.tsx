@@ -101,7 +101,7 @@ const AllIncidents = () => {
             case 'pending':
                 return 'bg-orange-500 text-white hover:bg-orange-600';
             case 'resolved':
-                return 'bg-blue-500 text-white hover:bg-blue-600';
+                return 'bg-green-700 text-white hover:bg-green-800';
             case 'resolved_and_fined':
                 return 'bg-green-700 text-white hover:bg-green-800';
             case 'rejected':
