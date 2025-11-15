@@ -274,3 +274,96 @@ exports.getIncidentStats = async (req, res) => {
         });
     }
 };
+
+// Get analytics data
+exports.getAnalytics = async (req, res) => {
+    try {
+        const { startDate, endDate, district } = req.query;
+
+        // Build WHERE clause
+        let whereConditions = [];
+        let params = [];
+
+        if (startDate && endDate) {
+            whereConditions.push('i.datetime BETWEEN ? AND ?');
+            params.push(startDate, endDate);
+        }
+
+        if (district && district !== 'all') {
+            whereConditions.push('i.district = ?');
+            params.push(district);
+        }
+
+        const whereClause = whereConditions.length > 0 
+            ? 'WHERE ' + whereConditions.join(' AND ')
+            : '';
+
+        // Get total violations
+        const [totalStats] = await db.query(`
+            SELECT 
+                COUNT(*) as total_violations,
+                COALESCE(SUM(CASE WHEN i.status = 'resolved_and_fined' THEN 1 ELSE 0 END), 0) as fines_issued,
+                COALESCE(SUM(CASE WHEN i.status = 'resolved_and_fined' THEN COALESCE(f.value, 0) ELSE 0 END), 0) as revenue
+            FROM incidents i
+            LEFT JOIN fines f ON i.fine_id = f.id
+            ${whereClause}
+        `, params);
+
+        // Get violations over time (last 7 days)
+        const [violationsOverTime] = await db.query(`
+            SELECT 
+                DATE_FORMAT(datetime, '%b %d') as date,
+                COUNT(*) as violations
+            FROM incidents i
+            ${whereClause}
+            GROUP BY DATE(datetime), DATE_FORMAT(datetime, '%b %d')
+            ORDER BY DATE(datetime) DESC
+            LIMIT 7
+        `, params);
+
+        // Get violation hotspots
+        const [hotspots] = await db.query(`
+            SELECT 
+                address as location,
+                COUNT(*) as count
+            FROM incidents i
+            ${whereClause}
+            GROUP BY address
+            ORDER BY count DESC
+            LIMIT 5
+        `, params);
+
+        // Get incidents reviewed
+        const [reviewStats] = await db.query(`
+            SELECT 
+                COALESCE(SUM(CASE WHEN status IN ('resolved_and_fined', 'resolved', 'rejected') THEN 1 ELSE 0 END), 0) as incidents_reviewed
+            FROM incidents i
+            ${whereClause}
+        `, params);
+
+        res.json({
+            success: true,
+            data: {
+                stats: {
+                    total_violations: totalStats[0].total_violations || 0,
+                    fines_issued: totalStats[0].fines_issued || 0,
+                    revenue: totalStats[0].revenue || 0,
+                    incidents_reviewed: reviewStats[0].incidents_reviewed || 0
+                },
+                violations_over_time: violationsOverTime.reverse(),
+                hotspots: hotspots,
+                review_stats: [
+                    { category: 'Fines Issued', count: totalStats[0].fines_issued || 0 },
+                    { category: 'Incidents Reviewed', count: reviewStats[0].incidents_reviewed || 0 }
+                ]
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching analytics:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error',
+            error: error.message
+        });
+    }
+};
