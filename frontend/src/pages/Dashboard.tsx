@@ -13,45 +13,73 @@ const Dashboard = () => {
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | undefined>();
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loading, setLoading] = useState(true);
+  const [incidentCount, setIncidentCount] = useState(0);
 
-  useEffect(() => {
-    const fetchIncidents = async () => {
-      try {
-        const response = await fetch('http://localhost:3000/api/incidents');
-        const data = await response.json();
+  const fetchIncidents = async () => {
+    try {
+      const response = await fetch('http://localhost:3000/api/incidents');
+      const data = await response.json();
 
-        if (data.success) {
-          // Transform backend data to frontend format
-          const transformedIncidents: Incident[] = data.data.map((incident: any) => ({
-            id: incident.id.toString(),
-            plateNumber: incident.car_number || 'Unknown',
-            location: {
-              lat: parseFloat(incident.latitude),
-              lng: parseFloat(incident.longitude),
-              street: incident.address,
-              district: incident.address.split(',')[0] || 'Unknown',
-            },
-            violationStart: new Date(incident.datetime),
-            duration: Math.floor((Date.now() - new Date(incident.datetime).getTime()) / 60000),
-            status: incident.status,
-            images: {
-              fullCar: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
-              licensePlate: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
-            },
-            notes: incident.ai_description,
-          }));
-          setIncidents(transformedIncidents);
+      if (data.success) {
+        // Transform backend data to frontend format
+        const transformedIncidents: Incident[] = data.data.map((incident: any) => ({
+          id: incident.id.toString(),
+          plateNumber: incident.car_number || 'Unknown',
+          location: {
+            lat: parseFloat(incident.latitude),
+            lng: parseFloat(incident.longitude),
+            street: incident.address,
+            district: incident.address.split(',')[0] || 'Unknown',
+          },
+          violationStart: new Date(incident.datetime),
+          duration: Math.floor((Date.now() - new Date(incident.datetime).getTime()) / 60000),
+          status: incident.status,
+          images: {
+            fullCar: 'https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800',
+            licensePlate: 'https://images.unsplash.com/photo-1580273916550-e323be2ae537?w=400',
+          },
+          notes: incident.ai_description,
+        }));
+        
+        // Notificare dacă a apărut un incident nou
+        const newCount = transformedIncidents.length;
+        if (incidentCount > 0 && newCount > incidentCount) {
+          const newIncidentCount = newCount - incidentCount;
+          toast.success(`🚨 ${newIncidentCount} incident(e) nou(e) detectat(e)!`, {
+            action: {
+              label: "View",
+              onClick: () => {
+                const newestIncident = transformedIncidents[0];
+                setSelectedIncidentId(newestIncident.id);
+              }
+            }
+          });
         }
-      } catch (error) {
-        console.error('Error fetching incidents:', error);
+        
+        setIncidents(transformedIncidents);
+        setIncidentCount(newCount);
+      }
+    } catch (error) {
+      console.error('Error fetching incidents:', error);
+      if (loading) {
         toast.error('Failed to load incidents');
-      } finally {
+      }
+    } finally {
+      if (loading) {
         setLoading(false);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
+    // Fetch incidents immediately
     fetchIncidents();
-  }, []);
+
+    // Set up polling interval - refresh every 5 seconds
+    const interval = setInterval(fetchIncidents, 5000);
+
+    return () => clearInterval(interval);
+  }, [incidentCount]);
 
   const newIncidents = incidents.filter(i => i.status === 'pending');
   const urgentIncidents = [...newIncidents]
