@@ -14,7 +14,7 @@ load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # URL camera telefon IP Webcam
-url = "http://10.47.103.46:8080/video"
+url = "http://10.133.72.247:8080/video"
 cap = cv2.VideoCapture(url)
 
 if not cap.isOpened():
@@ -124,7 +124,7 @@ while True:
         print("❌ Conexiune pierdută cu camera!")
         break
 
-    cv2.imshow("Camera Telefon - Live", frame)
+    # cv2.imshow("Camera Telefon - Live", frame)  # Disabled GUI
 
     current_time = frame_count / fps
 
@@ -151,8 +151,9 @@ while True:
 
     frame_count += 1
 
-    if cv2.waitKey(1) == 27:
-        break
+    # Check for keyboard interrupt to exit (Ctrl+C in terminal)
+    # if cv2.waitKey(1) == 27:
+    #     break
 
 cap.release()
-cv2.destroyAllWindows()
+# cv2.destroyAllWindows()  # Not needed without GUI

@@ -179,7 +179,7 @@ const IncidentReview = () => {
           ? `Fine: ${selectedFineData.name} (${selectedFineData.value} RON)`
           : 'No fine issued';
 
-        toast.success('Violation confirmed successfully', {
+        toast.success('Incident confirmed successfully', {
           description: `${incident.plateNumber} marked as resolved and fined. ${fineMessage}`,
         });
         setTimeout(() => navigate('/dashboard'), 1500);
@@ -187,8 +187,8 @@ const IncidentReview = () => {
         toast.error('Failed to update incident');
       }
     } catch (error) {
-      console.error('Error confirming violation:', error);
-      toast.error('Failed to confirm violation');
+      console.error('Error confirming incident:', error);
+      toast.error('Failed to confirm incident');
     }
   };
 
@@ -249,7 +249,7 @@ const IncidentReview = () => {
                     {incident.plateNumber}
                   </h1>
                   <Badge variant="destructive" className="bg-alert text-alert-foreground">
-                    Active Violation
+                    Pending Review
                   </Badge>
                 </div>
               </div>
@@ -297,7 +297,7 @@ const IncidentReview = () => {
               <div className="relative bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
                 <img
                   ref={cameraImageRef}
-                  src={`http://10.47.103.46:8080/shot.jpg?t=${cameraRefresh}`}
+                  src={`http://10.133.72.247:8080/shot.jpg?t=${cameraRefresh}`}
                   alt="Live Camera Feed"
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -346,7 +346,7 @@ const IncidentReview = () => {
                         Select Fine (Optional)
                       </Label>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Choose the appropriate fine for this violation
+                        Choose the appropriate fine for this incident, if applicable
                       </p>
                       <Select value={selectedFine} onValueChange={setSelectedFine}>
                         <SelectTrigger id="fine-select">
@@ -401,7 +401,7 @@ const IncidentReview = () => {
                       onClick={handleConfirmViolation}
                     >
                       <CheckCircle className="h-5 w-5 mr-2" />
-                      Confirm Violation & Issue Fine
+                      Confirm Incident & Issue Fine
                     </Button>
 
                     <Button
