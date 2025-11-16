@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { MapPin, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import logoTimisoara from '@/components/logo.jpeg';
+import loginBackground from '@/components/login-background.jpeg';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -73,25 +75,35 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-6">
-      <div className="w-full max-w-md space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <div className="bg-primary/10 p-4 rounded-full">
-              <MapPin className="h-12 w-12 text-primary" />
-            </div>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Timișoara SideWalk Watcher
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Municipality Officer Authentication
-          </p>
-        </div>
-
+    <div className="min-h-screen relative flex items-center justify-center p-6">
+      {/* Background Image with Blur */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center blur-sm"
+        style={{ backgroundImage: `url(${loginBackground})` }}
+      />
+      {/* Overlay */}
+      <div className="absolute inset-0 bg-black/20" />
+      
+      <div className="w-full max-w-md space-y-8 relative z-10">
         {/* Login Card */}
-        <Card className="p-8 shadow-lg">
+        <Card className="p-8 shadow-2xl bg-white/30 backdrop-blur-xl border border-white/50">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="flex justify-center mb-4">
+              <img 
+                src={logoTimisoara} 
+                alt="Timișoara Logo" 
+                className="h-24 w-24 rounded-full shadow-2xl"
+              />
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+              Timișoara SideWalk Watcher
+            </h1>
+            <p className="text-gray-700 mt-2 font-medium">
+              Municipality Officer Authentication
+            </p>
+          </div>
+
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="flex items-center gap-2">
@@ -124,18 +136,18 @@ const Login = () => {
 
             <Button
               type="submit"
-              className="w-full h-11 text-base"
+              className="w-full h-11 text-base bg-gray-900 hover:bg-gray-800 text-white"
               disabled={isLoading}
             >
               {isLoading ? 'Authenticating...' : 'Sign In'}
             </Button>
           </form>
+          
+          {/* Footer */}
+          <p className="text-center text-sm text-gray-800 font-medium mt-6">
+            Protected system - Authorized personnel only
+          </p>
         </Card>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-muted-foreground">
-          Protected system - Authorized personnel only
-        </p>
       </div>
     </div>
   );

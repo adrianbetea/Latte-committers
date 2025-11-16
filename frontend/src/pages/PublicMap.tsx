@@ -126,14 +126,14 @@ const PublicMap = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="border-b bg-gradient-to-r from-[#fec10e] to-[#ffb700]">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Timișoara SideWalk Watcher</h1>
-              <p className="text-sm text-muted-foreground">Public transparency dashboard</p>
+              <h1 className="text-2xl font-bold text-gray-900">Timișoara SideWalk Watcher</h1>
+              <p className="text-sm text-gray-700">Public transparency dashboard</p>
             </div>
-            <Badge variant="outline" className="text-sm">
+            <Badge variant="outline" className="text-sm bg-white border-gray-900 text-gray-900">
               <AlertCircle className="h-4 w-4 mr-1" />
               Public View
             </Badge>

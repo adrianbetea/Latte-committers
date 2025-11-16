@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
+import logoTimisoara from "./logo.jpeg";
 
 interface HeaderProps {
   newIncidentsCount: number;
@@ -62,19 +63,23 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
   };
 
   return (
-    <header className="bg-secondary text-secondary-foreground shadow-md">
+    <header className="bg-gradient-to-r from-[#fec10e] to-[#ffb700] shadow-md">
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <div
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => navigate('/dashboard')}
           >
-            <MapPin className="h-8 w-8" />
+            <img 
+              src={logoTimisoara} 
+              alt="Timișoara Logo" 
+              className="h-12 w-12 rounded-full"
+            />
             <div>
-              <h1 className="text-xl font-bold tracking-tight">
+              <h1 className="text-xl font-bold tracking-tight text-gray-900">
                 Timișoara SideWalk Watch
               </h1>
-              <p className="text-sm text-secondary-foreground/80">
+              <p className="text-sm text-gray-800">
                 Your Sidewalk Guardian Protecting Pedestrian Paths
               </p>
             </div>
@@ -83,7 +88,7 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
           <div className="flex items-center gap-6">
             <Button
               variant="ghost"
-              className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/incidents' ? 'bg-secondary/80' : ''
+              className={`text-gray-900 hover:text-gray-900 hover:bg-white/20 ${location.pathname === '/incidents' ? 'bg-white/30' : ''
                 }`}
               onClick={() => navigate('/incidents')}
             >
@@ -93,7 +98,7 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
             {isAdmin && (
               <Button
                 variant="ghost"
-                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/users-history' ? 'bg-secondary/80' : ''
+                className={`text-gray-900 hover:text-gray-900 hover:bg-white/20 ${location.pathname === '/users-history' ? 'bg-white/30' : ''
                   }`}
                 onClick={() => navigate('/users-history')}
               >
@@ -103,7 +108,7 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
             )}
             <Button
               variant="ghost"
-              className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/analytics' ? 'bg-secondary/80' : ''
+              className={`text-gray-900 hover:text-gray-900 hover:bg-white/20 ${location.pathname === '/analytics' ? 'bg-white/30' : ''
                 }`}
               onClick={() => navigate('/analytics')}
             >
@@ -113,7 +118,7 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
             {isAdmin && (
               <Button
                 variant="ghost"
-                className={`text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80 ${location.pathname === '/manage-users' ? 'bg-secondary/80' : ''
+                className={`text-gray-900 hover:text-gray-900 hover:bg-white/20 ${location.pathname === '/manage-users' ? 'bg-white/30' : ''
                   }`}
                 onClick={() => navigate('/manage-users')}
               >
@@ -122,13 +127,13 @@ const Header = ({ newIncidentsCount }: HeaderProps) => {
               </Button>
             )}
 
-            <div className="flex items-center gap-3 border-l border-secondary-foreground/20 pl-6">
+            <div className="flex items-center gap-3 border-l border-gray-900/20 pl-6">
 
 
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-secondary-foreground hover:text-secondary-foreground hover:bg-secondary/80"
+                className="text-gray-900 hover:text-gray-900 hover:bg-white/20"
                 onClick={handleLogout}
                 title="Logout"
               >
