@@ -1,15 +1,17 @@
-import { Clock, MapPin } from "lucide-react";
+import { Clock, MapPin, Eye } from "lucide-react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { Incident } from "@/types/incident";
 
 interface IncidentCardProps {
   incident: Incident;
   onClick: () => void;
+  onViewIncident?: () => void;
   isSelected?: boolean;
 }
 
-const IncidentCard = ({ incident, onClick, isSelected }: IncidentCardProps) => {
+const IncidentCard = ({ incident, onClick, onViewIncident, isSelected }: IncidentCardProps) => {
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -21,6 +23,11 @@ const IncidentCard = ({ incident, onClick, isSelected }: IncidentCardProps) => {
     }
 
     return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+  };
+
+  const handleViewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onViewIncident?.();
   };
 
   const getStatusBadgeClass = (status: string) => {
@@ -72,6 +79,18 @@ const IncidentCard = ({ incident, onClick, isSelected }: IncidentCardProps) => {
           minute: '2-digit',
         })}
       </div>
+
+      {onViewIncident && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3 w-full"
+          onClick={handleViewClick}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          View Incident
+        </Button>
+      )}
     </Card>
   );
 };

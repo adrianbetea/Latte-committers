@@ -254,9 +254,16 @@ Analizează această imagine de parcare.
 
 Identifică orice vehicul care este parcat în afara unui loc marcat sau pe o zonă interzisă/hașurată.
 
+REGULI STRICTE pentru numărul de înmatriculare:
+1. Scrie numărul DOAR dacă este COMPLET VIZIBIL și poți citi TOATE caracterele CU CERTITUDINE ABSOLUTĂ (100%)
+2. Dacă numărul este parțial vizibil, blur, în unghi, la distanță, în umbră, sau ai CEL MAI MIC DUBIU, scrie "necitibil"
+3. NU ghici, NU completa, NU deduce caractere care nu sunt perfect clare
+4. Este MULT MAI BUN să spui "necitibil" decât să dai un număr greșit
+5. Pentru a fi valid, TOATE caracterele trebuie clare, în focus, și fără nicio îndoială
+
 Dacă detectezi o încălcare, răspunde:
 ÎNCĂLCARE: DA
-NUMĂR_ÎNMATRICULARE: [număr sau NECITIBIL]
+NUMĂR_ÎNMATRICULARE: [număr exact SAU "necitibil"]
 DESCRIERE_VEHICUL: [culoare și tip]
 LOCAȚIE_ÎNCĂLCARE: [locație]
 

@@ -23,6 +23,7 @@ interface DistrictStats {
 const PublicMap = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [district, setDistrict] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [districtOverview, setDistrictOverview] = useState<DistrictStats[]>([]);
   const [stats, setStats] = useState({
     total_violations: 0,
@@ -45,7 +46,7 @@ const PublicMap = () => {
     fetchData();
     const interval = setInterval(fetchData, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, [district]);
+  }, [district, statusFilter]);
 
   const fetchData = async () => {
     try {
@@ -68,26 +69,34 @@ const PublicMap = () => {
       const incidentsData = await incidentsResponse.json();
 
       if (incidentsData.success) {
-        // Filter only resolved and fined incidents
-        const resolvedIncidents = incidentsData.data
-          .filter((inc: any) => inc.status === 'resolved_and_fined' || inc.status === 'resolved')
-          .map((incident: any, index: number) => ({
-            id: incident.id.toString(),
-            plateNumber: `Vehicle ${index + 1}`, // Anonymous plate number
-            location: {
-              lat: parseFloat(incident.latitude),
-              lng: parseFloat(incident.longitude),
-              street: incident.address,
-              district: incident.district || 'Unknown',
-            },
-            violationStart: new Date(incident.datetime),
-            duration: Math.floor((Date.now() - new Date(incident.datetime).getTime()) / 60000),
-            status: incident.status,
-            images: {
-              fullCar: '',
-              licensePlate: '',
-            },
-          }));
+        // Filter incidents by status
+        let filteredByStatus = incidentsData.data;
+        if (statusFilter !== 'all') {
+          filteredByStatus = incidentsData.data.filter((inc: any) => inc.status === statusFilter);
+        } else {
+          // Show all three statuses when 'all' is selected
+          filteredByStatus = incidentsData.data.filter((inc: any) => 
+            inc.status === 'resolved' || inc.status === 'resolved_and_fined' || inc.status === 'pending'
+          );
+        }
+
+        const resolvedIncidents = filteredByStatus.map((incident: any, index: number) => ({
+          id: incident.id.toString(),
+          plateNumber: `Vehicle ${index + 1}`, // Anonymous plate number
+          location: {
+            lat: parseFloat(incident.latitude),
+            lng: parseFloat(incident.longitude),
+            street: incident.address,
+            district: incident.district || 'Unknown',
+          },
+          violationStart: new Date(incident.datetime),
+          duration: Math.floor((Date.now() - new Date(incident.datetime).getTime()) / 60000),
+          status: incident.status,
+          images: {
+            fullCar: '',
+            licensePlate: '',
+          },
+        }));
 
         // Filter by district if selected
         const filteredIncidents = district === 'all' 
@@ -155,18 +164,31 @@ const PublicMap = () => {
             <Card className="p-4">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold">Incidents Map</h2>
-                <Select value={district} onValueChange={setDistrict}>
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="All Districts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districts.map((d) => (
-                      <SelectItem key={d} value={d}>
-                        {d === 'all' ? 'All Districts' : d}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="resolved">Resolved</SelectItem>
+                      <SelectItem value="resolved_and_fined">Resolved and Fined</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={district} onValueChange={setDistrict}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="All Districts" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {districts.map((d) => (
+                        <SelectItem key={d} value={d}>
+                          {d === 'all' ? 'All Districts' : d}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="h-[600px] rounded-lg overflow-hidden">
                 {loading ? (

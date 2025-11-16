@@ -125,6 +125,7 @@ const Dashboard = () => {
                   key={incident.id}
                   incident={incident}
                   onClick={() => handleIncidentClick(incident.id)}
+                  onViewIncident={() => handleIncidentReview(incident.id)}
                   isSelected={selectedIncidentId === incident.id}
                 />
               ))}
